@@ -1,0 +1,33 @@
+{% macro display(tx) -%}
+    {% if tx.info.version >= 4 -%}
+        {% if tx.info.type == 1 and 'sn_state_change' in tx.extra -%}
+            {% if tx.extra.sn_state_change.type == 'decom' -%}
+                <span class="icon" title="Service Node decommission">👎</span>
+            {% elif tx.extra.sn_state_change.type == 'recom' -%}
+                <span class="icon" title="Service Node recommission">👍</span>
+            {% elif tx.extra.sn_state_change.type == 'dereg' -%}
+                <span class="icon" title="Service Node deregistration">🚫</span>
+            {% elif tx.extra.sn_state_change.type == 'ip' -%}
+                <span class="icon" title="Service Node IP change penalty">📋</span>
+            {% else -%}
+                <span class="icon" title="Unknown state change transaction">❓</span><!-- Either a bug or a malformed transaction -->
+            {% endif -%}
+        {% elif tx.info.type == 2 -%}
+            <span class="icon" title="Service Node stake unlock — {{tx.extra.sn_pubkey}}">🔓</span>
+        {% elif tx.info.type == 4 and 'lns' in tx.extra -%}
+            {% if 'buy' in tx.extra.lns -%}
+                <span class="icon" title="Loki Name Service Buying">🎫</span>
+            {% elif 'update' in tx.extra.lns -%}
+                <span class="icon" title="Loki Name Service Updating">💾</span>
+            {% endif -%}
+        {% elif 'sn_registration' in tx.extra -%}
+            <span class="icon" title="Service Node registration ({{tx.extra.sn_registration.fee / 10000}}% fee)
+{{tx.extra.sn_pubkey}}
+{%-for c in tx.extra.sn_registration.contributors%}
+{{c.wallet | truncate(15)}} ({{c.portion / 10000}}% stake)
+{%-endfor%}">🏁</span>
+        {% elif 'sn_contributor' in tx.extra -%}
+            <span class="icon" title="Service Node contribution – {{tx.extra.sn_pubkey}} / {{tx.extra.sn_contributor}}">⚑</span>
+        {% endif -%}
+    {% endif -%}
+{% endmacro %}

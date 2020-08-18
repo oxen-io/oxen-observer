@@ -1,0 +1,31 @@
+<div id="pages" class="center" style="text-align: center;">
+  {% set top_page = (info.height - 1) // per_page %}
+  {% if page > 0 %}
+    <a href="/page/{{page - 1}}{{custom_per_page}}">
+      <div class="PageButton">Prev</div>
+    </a>
+  {% else %}
+    <div class="PageButton disabled">Prev</div>
+  {% endif %}
+  <div class="PageButton">
+    Current Page: <a title="Return to current blocks" href="/{%if custom_per_page%}page/0{{custom_per_page}}{%endif%}">{{page}}</a>/<a href="/page/{{top_page}}{{custom_per_page}}">{{top_page}}</a>
+  </div>
+
+  {%if page < top_page%}
+    <a href="/page/{{page + 1}}{{custom_per_page}}">
+      <div class="PageButton">Next</div>
+    </a>
+  {% else %}
+    <div class="PageButton disabled">Next</div>
+  {% endif %}
+
+  <div class="PaginationControl">
+  {% set per_page_options = [5, 10, 20, 25, 50, 100] %}
+  {% if not per_page in per_page_options %}
+    {{ '' if per_page_options.append(per_page) }}
+  {% endif %}
+  Showing <select onchange="window.location.href = '/page/0/' + this.value">
+    {% for p in per_page_options | sort %}<option{%if p == per_page%} selected="selected"{%endif%}>{{p}}</option>{% endfor %}
+  </select> blocks/page
+  </div>
+</div>

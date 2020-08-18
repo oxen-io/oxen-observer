@@ -1,0 +1,54 @@
+{# Basic content template: provides an overridable header/content/footer #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% block head %}
+      <title>{% block title %}{% endblock %}Loki{{' TESTNET' if info and info.testnet else ' DEVNET' if info and info.devnet else ''}}
+  Blockchain Explorer</title>
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    {% if refresh %}
+        <meta http-equiv="refresh" content="{{refresh}}">
+    {% endif %}
+  {% endblock %}
+</head>
+
+<body>
+<div id="header" class="Wrapper">
+    {% block header %}
+    <div>
+        <h1 class="Header"><a href="/">Loki
+                {%if info and info.testnet%}
+                    <span style="color:#ff6b62">Testnet</span>
+                {%elif info and info.devnet%}
+                    <span style="color:#af5bd2">Devnet</span>
+                {%endif%}
+                Blockchain Explorer</a></h1>
+        <form action="/search" method="get" style="width: 100%; margin-top:15px;" class="style-1">
+            <input type="text" name="value" size="120" placeholder="Block Height, Block Hash, Transaction Hash">
+            <input type="submit" class="PageButton" value="Search">
+        </form>
+        <form action="/search_service_node" method="get" style="width: 100%; margin-top:15px; margin-bottom: 1em;" class="style-1">
+            <input type="text" name="value" size="120" placeholder="Service Node Public Key">
+            <input type="submit" class="PageButton" value="Search">
+        </form>
+        <div class="TitleDivider" style="margin-bottom: 1em"></div>
+    </div>
+    {% endblock %}
+</div>
+
+{% block content %}
+{% endblock %}
+
+<div id="footer" class="Wrapper">
+    {% block footer %}
+    <div class="TitleDivider" style="margin-top: 1em" ></div>
+    <p style="margin-top:10px">
+        <a href="https://github.com/Doy-lee/onion-loki-blockchain-explorer/tree/loki">Source Code</a>
+        | Explorer Version (api): {{git_branch_name}}-{{last_git_commit_date}}-{{last_git_commit_hash}} ({{api}})
+        | Loki Version: {{loki_version_full}}
+    </p>
+    {% endblock %}
+</div>
+
+</body>
+</html>

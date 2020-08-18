@@ -1,0 +1,43 @@
+{# Lists mempool transactions.  mempool_limit can be set to limit the number of shown transactions; defaults to 25.  Set explicitly to none to show all. #}
+{% if not mempool_limit is defined %}{% set mempool_limit = 25 %}
+{% elif mempool_limit is none %}{% set mempool_limit = mempool.transactions|length %}
+{% endif %}
+<div class="Wrapper">
+    <h2 style="margin-bottom: 0px"> Transaction Pool</h2>
+
+    <h4 class="Subtitle">{{mempool.transactions|length}} transactions,
+        {{mempool.transactions|sum(attribute='blob_size') | si}}B</h4>
+    <div class="TitleDivider"></div>
+
+    <table style="width:100%">
+        <thead>
+            <tr>
+                <td title="How long ago the transaction was received by this node">Age [h:m:s]</td>
+                <td>Type</td>
+                <td>Transaction Hash</td>
+                <td>Fee/Per kB</td>
+                <td>In/Out</td>
+                <td>TX Size</td>
+            </tr>
+        </thead>
+        <tbody>
+        {% for tx in mempool.transactions[:mempool_limit] %}
+            <tr>
+                <td title="{{tx.receive_time | from_timestamp | format_datetime}}">{{tx.receive_time | from_timestamp | ago}}</td>
+                <td class=TXType>{{tx_type_symbol}}</td>
+                <td><a href="/tx/{{tx.id_hash}}">{{tx.id_hash}}</a></td>
+                <td>{{tx.info.vin | length}}/{{tx.info.vout | length}}</td>
+                <td>{{tx.blob_size | si}}B</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% if mempool.transactions|length > mempool_limit %}
+        <div class="center" style="text-align: center; margin-bottom: 10px">
+            <a href="/txpool">Only {{mempool_limit}}/{{len(mempool.transactions)}} transactions shown. Click here to see all of them</a>
+        </div>
+    {% endif %}
+
+</div> <!-- Wrapper -->
+
