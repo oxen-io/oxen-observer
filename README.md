@@ -15,7 +15,7 @@ Quick and dirty setup instructions for now:
     make -j6
     cd ../..
     ln -s pylokimq/build/pylokimq/pylokimq.cpython-*.so .
-    sudo apt install python3-flask
+    sudo apt install python3-flask python3-babel
 
 You'll also need to run lokid with `--lmq-local-control ipc:///path/to/loki-observer/mainnet.sock`.
 
