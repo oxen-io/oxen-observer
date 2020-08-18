@@ -15,6 +15,7 @@ app.jinja_env.auto_reload = True
 # end DEBUG
 
 lmq = pylokimq.LokiMQ(pylokimq.LogLevel.warn)
+lmq.max_message_size = 10*1024*1024
 lmq.start()
 lokid = lmq.connect_remote('ipc://./mainnet.sock')
 #lokid = lmq.connect_remote('ipc://./testnet.sock')
