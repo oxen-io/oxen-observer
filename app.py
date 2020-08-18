@@ -80,9 +80,40 @@ def datetime_ago(value):
     disp += '{:2d}:{:02d}:{:02d}'.format(delta.seconds // 3600, delta.seconds // 60 % 60, delta.seconds % 60)
     return disp
 
-@app.template_filter('round')
+
+@app.template_filter('reltime')
+def relative_time(seconds):
+    ago = False
+    if seconds == 0:
+        return 'now'
+    elif seconds < 0:
+        seconds = -seconds
+        ago = True
+
+    if seconds < 90:
+        delta = '{:.0f} seconds'.format(seconds)
+    elif seconds < 90 * 60:
+        delta = '{:.1f} minutes'.format(seconds / 60)
+    elif seconds < 36 * 3600:
+        delta = '{:.1f} hours'.format(seconds / 3600)
+    elif seconds < 99.5 * 86400:
+        delta = '{:.1f} days'.format(seconds / 86400)
+    else:
+        delta = '{:.0f} days'.format(seconds / 86400)
+
+    return delta + ' ago' if ago else 'in ' + delta
+
+
+@app.template_filter('roundish')
 def filter_round(value):
     return ("{:.0f}" if value >= 100 or isinstance(value, int) else "{:.1f}" if value >= 10 else "{:.2f}").format(value)
+
+@app.template_filter('chop0')
+def filter_chop0(value):
+    value = str(value)
+    if '.' in value:
+        return value.rstrip('0').rstrip('.')
+    return value
 
 si_suffix = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
 @app.template_filter('si')
@@ -101,7 +132,7 @@ def format_loki(atomic, tag=True, fixed=False, decimals=9):
     decimals - at how many decimal we should round; the default is full precision
     """
     disp = "{{:.{}f}}".format(decimals).format(atomic * 1e-9)
-    if not fixed:
+    if not fixed and decimals > 0:
         disp = disp.rstrip('0').rstrip('.')
     if tag:
         disp += ' LOKI'
@@ -123,11 +154,21 @@ def css():
 @app.route('/range/<int:first>/<int:last>')
 @app.route('/autorefresh/<int:refresh>')
 def main(refresh=None, page=0, per_page=None, first=None, last=None):
-    info = FutureJSON('rpc.get_info', 1)
+    inforeq = FutureJSON('rpc.get_info', 1)
     stake = FutureJSON('rpc.get_staking_requirement', 10)
     base_fee = FutureJSON('rpc.get_fee_estimate', 10)
     hfinfo = FutureJSON('rpc.hard_fork_info', 10)
     mempool = FutureJSON('rpc.get_transaction_pool', 5)
+    sns = FutureJSON('rpc.get_service_nodes', 5,
+            args=[json.dumps({
+                'all': False,
+                'fields': { x: True for x in ('service_node_pubkey', 'requested_unlock_height', 'last_reward_block_height',
+                    'last_reward_transaction_index', 'active', 'funded', 'earned_downtime_blocks',
+                    'service_node_version', 'contributors', 'total_contributed', 'total_reserved',
+                    'staking_requirement', 'portions_for_operator', 'operator_address', 'pubkey_ed25519',
+                    'last_uptime_proof', 'service_node_version') } }).encode()])
+
+
     # This call is slow the first time it gets called in lokid but will be fast after that, so call
     # it with a very short timeout.  It's also an admin-only command, so will always fail if we're
     # using a restricted RPC interface.
@@ -158,7 +199,8 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
     # We have some chained request dependencies here and below, so get() them as needed; all other
     # non-dependent requests should already have a future initiated above so that they can
     # potentially run in parallel.
-    height = info.get()['height']
+    info = inforeq.get()
+    height = info['height']
 
     # Permalinked block range:
     if first is not None and last is not None and 0 <= first <= last and last <= first + 99:
@@ -225,12 +267,32 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
     else:
         mp['transactions'] = []
 
+    # Clean up the SN data a bit to make things easier for the templates
+    sn_states = sns.get()['service_node_states']
+    awaiting_sns, active_sns, inactive_sns = [], [], []
+    for sn in sn_states:
+        sn['contribution_open'] = sn['staking_requirement'] - sn['total_reserved']
+        sn['contribution_required'] = sn['staking_requirement'] - sn['total_contributed']
+        sn['num_contributions'] = sum(len(x['locked_contributions']) for x in sn['contributors'])
+
+        if sn['active']:
+            active_sns.append(sn)
+        elif sn['funded']:
+            sn['decomm_blocks_remaining'] = max(sn['earned_downtime_blocks'], 0)
+            sn['decomm_blocks'] = info['height'] - sn['state_height']
+            inactive_sns.append(sn)
+        else:
+            awaiting_sns.append(sn)
+
     return flask.render_template('index.html',
-            info=info.get(),
+            info=info,
             stake=stake.get(),
             fees=base_fee.get(),
             emission=coinbase.get(),
             hf=hfinfo.get(),
+            active_sns=active_sns,
+            inactive_sns=inactive_sns,
+            awaiting_sns=awaiting_sns,
             blocks=blocks,
             block_size_median=statistics.median(b['block_size'] for b in blocks),
             page=page,

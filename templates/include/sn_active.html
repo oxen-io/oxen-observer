@@ -1,0 +1,39 @@
+<table style="width:100%">
+    <thead>
+        <tr>
+            <td>Public Key</td>
+            <td>Contributors</td>
+            <td>Operator Fee (%)</td>
+            <td>Staking Requirement</td>
+            <td title="Can also be the height of the last activation, IP penalty, or recommission">Last Reward Height</td>
+            <td>Last Uptime Proof</td>
+            <td>Expiry Date UTC (Estimated)</td>
+        </tr>
+    </thead>
+
+    <tbody>
+        {%for sn in (active_sns | sort(attribute='last_reward_block_height,last_reward_transaction_index,service_node_pubkey'))[:disp_active]%}
+
+            <tr>
+                {%include 'include/sn_kcf.html'%}
+                <td>{{sn.staking_requirement | loki(tag=false, fixed=true)}}</td>
+                <td>{{sn.last_reward_block_height}}</td>
+                <td>{{sn.last_uptime_proof | from_timestamp | ago}}</td>
+                <td>
+                    {%if sn.requested_unlock_height%}
+                        <span title="Service Node unlock in progress (unlocks at block {{sn.requested_unlock_height}})">🔓</span>
+                        {{((sn.requested_unlock_height - info.height) * 120 + server.timestamp.timestamp()) | from_timestamp | format_datetime('short')}}
+                        ({{((sn.requested_unlock_height - info.height) * 120) | reltime}})
+                    {%else%}
+                        Staking Infinitely
+                    {%endif%}
+                </td>
+            </tr>
+        {%endfor%}
+    </tbody>
+    {%if active_sns|length > disp_active%}
+    <tr>
+        <td class="sn-more" colspan="7"><a href="/service_nodes">+ {{active_sns|length - disp_active}} more ↪</a></td>
+    </tr>
+    {%endif%}
+</table>

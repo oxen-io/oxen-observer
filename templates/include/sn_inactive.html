@@ -1,0 +1,32 @@
+<table style="width:100%">
+    <thead>
+        <tr>
+            <td>Public Key</td>
+            <td>Contributors</td>
+            <td>Operator Fee (%)</td>
+            <td>Decommission Height</td>
+            <td>Last Uptime Proof</td>
+            <td>Blocks until Dereg.</td>
+        </tr>
+    </thead>
+
+    <tbody>
+        {%for sn in (inactive_sns | sort(attribute='earned_downtime_blocks,state_height,last_uptime_proof,service_node_pubkey'))[:disp_inactive]%}
+            <tr>
+                {%include 'include/sn_kcf.html'%}
+                <td>{{sn.state_height}}</td>
+                <td>{{sn.last_uptime_proof | from_timestamp | ago}}</td>
+                <td>{%if sn.decomm_blocks_remaining > 0%}{{sn.decomm_blocks_remaining}} ({{(sn.decomm_blocks_remaining * 120) | reltime}})
+                        {%-else%}None (deregistration imminent!)
+                        {%-endif%}</td>
+            </tr>
+        {%endfor%}
+
+        {%if disp_inactive and inactive_sns | count > disp_inactive%}
+            <tr>
+                <td class="sn-more" colspan="6"><a href="/service_nodes#service-nodes-inactive">+ {{inactive_sns | count - disp_inactive}} more ↪</a></td>
+            </tr>
+        {%endif%}
+    </tbody>
+</table>
+

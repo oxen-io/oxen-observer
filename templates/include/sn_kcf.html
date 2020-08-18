@@ -1,0 +1,6 @@
+{# First three commons columns of SN tables: pubkey, # contributors, and op fee #}
+<td><a href="/service_node/{{sn.service_node_pubkey}}">{{sn.service_node_pubkey}}</a></td>
+<td title="
+{%-for c in sn.contributors%}{%for lc in c.locked_contributions%}{{c.address | truncate(15)}} ({{lc.amount | loki(decimals=0)}} = {{(lc.amount / sn.staking_requirement * 100) | round(1) | chop0}}%)
+{%endfor%}{%endfor%}"><span class="icon">{{sn.contributors | length}}/4</span></td>
+<td>{%if sn.portions_for_operator != portions_base%}{{ (sn.portions_for_operator / portions_base * 100) | round(3) | chop0 }}{%endif%}</td>

@@ -21,7 +21,10 @@
                 <span class="icon" title="Loki Name Service Updating">💾</span>
             {% endif -%}
         {% elif 'sn_registration' in tx.extra -%}
-            <span class="icon" title="Service Node registration ({{tx.extra.sn_registration.fee / 10000}}% fee)
+            <span class="icon" title="Service Node registration
+                         {%-if tx.extra.sn_registration.fee == 1000000%} (solo)
+                         {%-else%} ({{tx.extra.sn_registration.fee / 10000}}% fee)
+                         {%-endif%}
 {{tx.extra.sn_pubkey}}
 {%-for c in tx.extra.sn_registration.contributors%}
 {{c.wallet | truncate(15)}} ({{c.portion / 10000}}% stake)
