@@ -24,7 +24,7 @@ You'll also need to run lokid with `--lmq-local-control ipc:///path/to/loki-obse
 
 Then to run it in debug mode (production requires setting up a WSGI server, will document layer):
 
-    flask run --reload --debugger
+    FLASK_APP=observer flask run --reload --debugger
 
 This mode seems to be a bit flakey -- reloading, in particular, seems to break things and make it
 just silently exit after a while.
