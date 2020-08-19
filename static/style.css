@@ -228,6 +228,65 @@ input#toggle-1[type=checkbox]:checked ~ div#decoded-inputs {
     display: block;
 }
 
+.Table.metadata td {
+    text-align: left;
+}
+
+.Table.metadata label {
+    text-align: right;
+    display: inline-block;
+    width: 50%;
+}
+
+
+td.sn-more {
+    font-style: italic;
+    font-size: 125%;
+}
+
+p.state-change-pubkey {
+    font-size: 120%;
+}
+th.voter-signature, td.voter-signature {
+    max-width: 300px;
+}
+td.voter-signature {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+td.quorum-pubkey span {
+    display: inline-block;
+    width: 80ex;
+    text-align: left;
+}
+
+th.subheader {
+    text-align: left;
+    border-bottom: 2px solid #008522;
+}
+
+td span.checkpoint-signed { color: #008522; }
+td span.checkpoint-not-signed { color: #c50022; }
+
+.omg {
+    font-weight: bold;
+}
+
+.pending-mempool-stakes .tx {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+h3 .sn-count {
+    font-weight: bold;
+}
+
+.TXType {
+  font-family: initial;
+}
+
 span.icon {
     cursor: help;
 }
