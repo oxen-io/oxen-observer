@@ -17,6 +17,9 @@ Quick and dirty setup instructions for now:
     ln -s pylokimq/build/pylokimq/pylokimq.cpython-*.so .
     sudo apt install python3-flask python3-babel
 
+(Note that we require a very recent python3-jinja package (2.11+), which may not be installed by the
+above.)
+
 You'll also need to run lokid with `--lmq-local-control ipc:///path/to/loki-observer/mainnet.sock`.
 
 Then to run it in debug mode (production requires setting up a WSGI server, will document layer):
