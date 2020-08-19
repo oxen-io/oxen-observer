@@ -1,0 +1,9 @@
+{% extends "_basic.html" %}
+
+{% block content %}
+    {%set limit_awaiting = none%}
+    {%set limit_inactive = none%}
+    {%set limit_active = none%}
+
+    {%include 'include/service_nodes_lists.html'%}
+{% endblock %}

@@ -107,6 +107,43 @@ def add_global_headers(response):
 def css():
     return flask.send_from_directory('static', 'style.css')
 
+
+def get_sns_future(lmq, lokid):
+    return FutureJSON(lmq, lokid, 'rpc.get_service_nodes', 5,
+            args=[json.dumps({
+                'all': False,
+                'fields': { x: True for x in ('service_node_pubkey', 'requested_unlock_height', 'last_reward_block_height',
+                    'last_reward_transaction_index', 'active', 'funded', 'earned_downtime_blocks',
+                    'service_node_version', 'contributors', 'total_contributed', 'total_reserved',
+                    'staking_requirement', 'portions_for_operator', 'operator_address', 'pubkey_ed25519',
+                    'last_uptime_proof', 'service_node_version') } }).encode()])
+
+def get_sns(sns_future, info_future):
+    info = info_future.get()
+    awaiting_sns, active_sns, inactive_sns = [], [], []
+    sn_states = sns_future.get()['service_node_states']
+    for sn in sn_states:
+        sn['contribution_open'] = sn['staking_requirement'] - sn['total_reserved']
+        sn['contribution_required'] = sn['staking_requirement'] - sn['total_contributed']
+        sn['num_contributions'] = sum(len(x['locked_contributions']) for x in sn['contributors'])
+
+        if sn['active']:
+            active_sns.append(sn)
+        elif sn['funded']:
+            sn['decomm_blocks_remaining'] = max(sn['earned_downtime_blocks'], 0)
+            sn['decomm_blocks'] = info['height'] - sn['state_height']
+            inactive_sns.append(sn)
+        else:
+            awaiting_sns.append(sn)
+    return awaiting_sns, active_sns, inactive_sns
+
+def template_globals():
+    return {
+        'config': conf,
+        'server': { 'timestamp': datetime.utcnow() }
+    }
+
+
 @app.route('/')
 @app.route('/page/<int:page>')
 @app.route('/page/<int:page>/<int:per_page>')
@@ -119,24 +156,13 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
     base_fee = FutureJSON(lmq, lokid, 'rpc.get_fee_estimate', 10)
     hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
     mempool = FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5)
-    sns = FutureJSON(lmq, lokid, 'rpc.get_service_nodes', 5,
-            args=[json.dumps({
-                'all': False,
-                'fields': { x: True for x in ('service_node_pubkey', 'requested_unlock_height', 'last_reward_block_height',
-                    'last_reward_transaction_index', 'active', 'funded', 'earned_downtime_blocks',
-                    'service_node_version', 'contributors', 'total_contributed', 'total_reserved',
-                    'staking_requirement', 'portions_for_operator', 'operator_address', 'pubkey_ed25519',
-                    'last_uptime_proof', 'service_node_version') } }).encode()])
-
+    sns = get_sns_future(lmq, lokid)
 
     # This call is slow the first time it gets called in lokid but will be fast after that, so call
     # it with a very short timeout.  It's also an admin-only command, so will always fail if we're
     # using a restricted RPC interface.
     coinbase = FutureJSON(lmq, lokid, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
             args=[json.dumps({"height":0, "count":2**31-1}).encode()])
-    server = dict(
-            timestamp=datetime.utcnow(),
-            )
 
     custom_per_page = ''
     if per_page is None or per_page <= 0 or per_page > config.max_blocks_per_page:
@@ -216,21 +242,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
         mp['transactions'] = []
 
     # Clean up the SN data a bit to make things easier for the templates
-    sn_states = sns.get()['service_node_states']
-    awaiting_sns, active_sns, inactive_sns = [], [], []
-    for sn in sn_states:
-        sn['contribution_open'] = sn['staking_requirement'] - sn['total_reserved']
-        sn['contribution_required'] = sn['staking_requirement'] - sn['total_contributed']
-        sn['num_contributions'] = sum(len(x['locked_contributions']) for x in sn['contributors'])
-
-        if sn['active']:
-            active_sns.append(sn)
-        elif sn['funded']:
-            sn['decomm_blocks_remaining'] = max(sn['earned_downtime_blocks'], 0)
-            sn['decomm_blocks'] = info['height'] - sn['state_height']
-            inactive_sns.append(sn)
-        else:
-            awaiting_sns.append(sn)
+    awaiting_sns, active_sns, inactive_sns = get_sns(sns, inforeq)
 
     return flask.render_template('index.html',
             info=info,
@@ -247,7 +259,20 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             per_page=per_page,
             custom_per_page=custom_per_page,
             mempool=mp,
-            server=server,
-            config=conf,
             refresh=refresh,
+            **template_globals(),
             )
+
+@app.route('/service_nodes')
+def sns():
+    lmq, lokid = lmq_connection()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
+    awaiting, active, inactive = get_sns(get_sns_future(lmq, lokid), info)
+
+    return flask.render_template('service_nodes.html',
+        info=info.get(),
+        active_sns=active,
+        awaiting_sns=awaiting,
+        inactive_sns=inactive,
+        **template_globals(),
+        )

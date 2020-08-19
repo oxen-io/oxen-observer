@@ -11,20 +11,20 @@
     </thead>
 
     <tbody>
-        {%for sn in (inactive_sns | sort(attribute='earned_downtime_blocks,state_height,last_uptime_proof,service_node_pubkey'))[:disp_inactive]%}
+        {%for sn in (inactive_sns | sort(attribute='earned_downtime_blocks,state_height,last_uptime_proof,service_node_pubkey'))[:limit_inactive]%}
             <tr>
                 {%include 'include/sn_kcf.html'%}
                 <td>{{sn.state_height}}</td>
-                <td>{{sn.last_uptime_proof | from_timestamp | ago}}</td>
+                <td>{{sn.last_uptime_proof | from_timestamp | ago if sn.last_uptime_proof > 0 else "Not Received"}}</td>
                 <td>{%if sn.decomm_blocks_remaining > 0%}{{sn.decomm_blocks_remaining}} ({{(sn.decomm_blocks_remaining * 120) | reltime}})
                         {%-else%}None (deregistration imminent!)
                         {%-endif%}</td>
             </tr>
         {%endfor%}
 
-        {%if disp_inactive and inactive_sns | count > disp_inactive%}
+        {%if limit_inactive and inactive_sns | count > limit_inactive%}
             <tr>
-                <td class="sn-more" colspan="6"><a href="/service_nodes#service-nodes-inactive">+ {{inactive_sns | count - disp_inactive}} more ↪</a></td>
+                <td class="sn-more" colspan="6"><a href="/service_nodes#service-nodes-inactive">+ {{inactive_sns | count - limit_inactive}} more ↪</a></td>
             </tr>
         {%endif%}
     </tbody>

@@ -63,24 +63,21 @@
             </h3>
         {% endif %}
 
-        <code>{{emission}}</code>
-        {% if emission %}
-            <h4 class="nowrap-spans">
-                <span><span style="font-weight: bold">Circulating Supply*</span>: 
-                    {% if emission.status == 'BUSY' %}
-                        (still calculating...)</span>
-                    {% elif emission.status == 'OK' %}
-                        {{(emission.emission_amount - emission.burn_amount) | loki}}</span>
-                        <span>(Coinbase: {{emission.emission_amount | loki}}</span>
-                        <span>| Fees: {{emission.fee_amount | loki}}</span>
-                        <span>| Burned: {{emission.burn_amount | loki}}).</span>
-                    {%endif%}
-                <p style="padding: 0px; margin-top: 2px; font-size: 0.9em">
-                * — Circulating supply may exclude any currently, publicised locked tokens, otherwise it is equal to the Coinbase minus burned coins.
-                Fees includes paid transaction fees less any portion of the fee that was burned.
-                </p>
-            </h4>
-        {% endif %}
+        <h4 class="nowrap-spans">
+            <span><span style="font-weight: bold">Circulating Supply*</span>:
+                {% if not emission or emission.status == 'BUSY' %}
+                    (still calculating...)</span>
+                {% elif emission.status == 'OK' %}
+                    {{(emission.emission_amount - emission.burn_amount) | loki}}</span>
+                    <span>(Coinbase: {{emission.emission_amount | loki}}</span>
+                    <span>| Fees: {{emission.fee_amount | loki}}</span>
+                    <span>| Burned: {{emission.burn_amount | loki}}).</span>
+                {%endif%}
+            <p style="padding: 0px; margin-top: 2px; font-size: 0.9em">
+            * — Circulating supply may exclude any currently, publicised locked tokens, otherwise it is equal to the Coinbase minus burned coins.
+            Fees includes paid transaction fees less any portion of the fee that was burned.
+            </p>
+        </h4>
 
 
         <h4 style="font-weight: bold; margin-bottom: 2px">TX Types Legend</h4>
@@ -171,37 +168,11 @@
         {% include 'include/block_page_controls.html' %}
     </div>
 
-    {%set disp_awaiting = 10%}
-    {%set disp_inactive = 10%}
-    {%set disp_active = 10%}
-    {%set portions_base = 2**64 - 4%}
+    {%set limit_awaiting = 10%}
+    {%set limit_inactive = 10%}
+    {%set limit_active = 10%}
 
-    <div class="Wrapper">
-        <div class="TitleDivider"></div>
-        <h1 style="margin-bottom: 0px">Service Nodes</h1>
-        <h3><span class="sn-count">{{awaiting_sns | count}}</span> service nodes awaiting contributions,
-            <span class="sn-count">{{inactive_sns | count}}</span> decommissioned service nodes,
-            and <span class="sn-count">{{active_sns | count}}</span> active service nodes.</h3>
-
-        <h2 style="margin-bottom: 0px" id="service-nodes-awaiting">Service Nodes Awaiting Contributions <span class="sn-count">({{awaiting_sns | count}})</span></h2>
-        <div class="TitleDivider sn-awaiting"></div>
-        {%include 'include/sn_awaiting.html'%}
-
-
-        <h2 style="margin-bottom: 0px" id="service-nodes-inactive">Inactive/Decommissioned Service Nodes <span class="sn-count">({{inactive_sns | count}})</span></h2>
-        <h4 class="Subtitle">(These service nodes are currently decommissioned for failing network obligations, <span style="font-weight: bold; text-decoration: underline">are not earning rewards</span>, and face deregistration soon)</h4>
-        <div class="TitleDivider sn-inactive"></div>
-        {%include 'include/sn_inactive.html'%}
-
-
-        <h2 style="margin-bottom: 0px">Active Service Nodes <span class="sn-count">({{active_sns | count}})</span></h2>
-        <div class="TitleDivider sn-active"></div>
-        {%include 'include/sn_active.html'%}
-    </div>
-
-    <div class="Wrapper">
-      <p> <a class="" href="/service_nodes">Click here to see the full service node list (at most only 10 are shown here)</a> </p>
-    </div>
+    {%include 'include/service_nodes_lists.html'%}
 
     {{quorum_state_summary}}
     <div class="Wrapper">

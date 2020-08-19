@@ -1,0 +1,29 @@
+<div class="Wrapper">
+    <div class="TitleDivider"></div>
+    <h1 style="margin-bottom: 0px">Service Nodes</h1>
+    <h3><span class="sn-count">{{awaiting_sns | count}}</span> service nodes awaiting contributions,
+        <span class="sn-count">{{inactive_sns | count}}</span> decommissioned service nodes,
+        and <span class="sn-count">{{active_sns | count}}</span> active service nodes.</h3>
+
+    <h2 style="margin-bottom: 0px" id="service-nodes-awaiting">Service Nodes Awaiting Contributions <span class="sn-count">({{awaiting_sns | count}})</span></h2>
+    <div class="TitleDivider sn-awaiting"></div>
+    {%include 'include/sn_awaiting.html'%}
+
+
+    <h2 style="margin-bottom: 0px" id="service-nodes-inactive">Inactive/Decommissioned Service Nodes <span class="sn-count">({{inactive_sns | count}})</span></h2>
+    <h4 class="Subtitle">(These service nodes are currently decommissioned for failing network obligations, <span style="font-weight: bold; text-decoration: underline">are not earning rewards</span>, and face deregistration soon)</h4>
+    <div class="TitleDivider sn-inactive"></div>
+    {%include 'include/sn_inactive.html'%}
+
+
+    <h2 style="margin-bottom: 0px">Active Service Nodes <span class="sn-count">({{active_sns | count}})</span></h2>
+    <div class="TitleDivider sn-active"></div>
+    {%include 'include/sn_active.html'%}
+</div>
+
+{%if limit_active%}
+<div class="Wrapper">
+    <p> <a class="" href="/service_nodes">Click here to see the full service node list (at most {{limit_active}} are shown here)</a> </p>
+</div>
+{%endif%}
+

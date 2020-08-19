@@ -12,13 +12,13 @@
     </thead>
 
     <tbody>
-        {%for sn in (active_sns | sort(attribute='last_reward_block_height,last_reward_transaction_index,service_node_pubkey'))[:disp_active]%}
+        {%for sn in (active_sns | sort(attribute='last_reward_block_height,last_reward_transaction_index,service_node_pubkey'))[:limit_active]%}
 
             <tr>
                 {%include 'include/sn_kcf.html'%}
                 <td>{{sn.staking_requirement | loki(tag=false, fixed=true)}}</td>
                 <td>{{sn.last_reward_block_height}}</td>
-                <td>{{sn.last_uptime_proof | from_timestamp | ago}}</td>
+                <td>{{sn.last_uptime_proof | from_timestamp | ago if sn.last_uptime_proof > 0 else "Not Received"}}</td>
                 <td>
                     {%if sn.requested_unlock_height%}
                         <span title="Service Node unlock in progress (unlocks at block {{sn.requested_unlock_height}})">🔓</span>
@@ -31,9 +31,9 @@
             </tr>
         {%endfor%}
     </tbody>
-    {%if active_sns|length > disp_active%}
+    {%if limit_active and active_sns|length > limit_active%}
     <tr>
-        <td class="sn-more" colspan="7"><a href="/service_nodes">+ {{active_sns|length - disp_active}} more ↪</a></td>
+        <td class="sn-more" colspan="7"><a href="/service_nodes">+ {{active_sns|length - limit_active}} more ↪</a></td>
     </tr>
     {%endif%}
 </table>
