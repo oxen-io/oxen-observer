@@ -8,6 +8,11 @@ import json
 import sys
 import statistics
 
+import config
+
+# Make a dict of config.* to pass to templating
+conf = {x: getattr(config, x) for x in dir(config) if not x.startswith('__')}
+
 app = flask.Flask(__name__)
 # DEBUG:
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -17,9 +22,7 @@ app.jinja_env.auto_reload = True
 lmq = pylokimq.LokiMQ(pylokimq.LogLevel.warn)
 lmq.max_message_size = 10*1024*1024
 lmq.start()
-lokid = lmq.connect_remote('ipc://./mainnet.sock')
-#lokid = lmq.connect_remote('ipc://./testnet.sock')
-#lokid = lmq.connect_remote('ipc://./devnet.sock')
+lokid = lmq.connect_remote(config.lokid_rpc)
 
 cached = {}
 cached_args = {}
@@ -178,21 +181,9 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             timestamp=datetime.utcnow(),
             )
 
-    config = dict(
-            # FIXME: make these configurable
-            pusher=True,
-            key_image_checker=True,
-            output_key_checker=True,
-            autorefresh_option=True,
-            mainnet_url='',
-            testnet_url='',
-            devnet_url='',
-            blocks_per_page=20
-            )
-
     custom_per_page = ''
-    if per_page is None or per_page <= 0 or per_page > 100:
-        per_page = config['blocks_per_page']
+    if per_page is None or per_page <= 0 or per_page > config.max_blocks_per_page:
+        per_page = config.blocks_per_page
     else:
         custom_per_page = '/{}'.format(per_page)
 
@@ -300,6 +291,6 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             custom_per_page=custom_per_page,
             mempool=mp,
             server=server,
-            config=config,
+            config=conf,
             refresh=refresh,
             )
