@@ -14,10 +14,10 @@ import config
 conf = {x: getattr(config, x) for x in dir(config) if not x.startswith('__')}
 
 app = flask.Flask(__name__)
-# DEBUG:
-app.config['TEMPLATES_AUTO_RELOAD'] = True
-app.jinja_env.auto_reload = True
-# end DEBUG
+if __name__ == '__main__':
+    # DEBUG:
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.jinja_env.auto_reload = True
 
 lmq = pylokimq.LokiMQ(pylokimq.LogLevel.warn)
 lmq.max_message_size = 10*1024*1024
