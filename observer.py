@@ -155,7 +155,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
     stake = FutureJSON(lmq, lokid, 'rpc.get_staking_requirement', 10)
     base_fee = FutureJSON(lmq, lokid, 'rpc.get_fee_estimate', 10)
     hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
-    mempool = FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5)
+    mempool = FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5, args=[json.dumps({"tx_extra":True}).encode()])
     sns = get_sns_future(lmq, lokid)
 
     # This call is slow the first time it gets called in lokid but will be fast after that, so call

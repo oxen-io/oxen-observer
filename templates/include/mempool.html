@@ -21,11 +21,15 @@
             </tr>
         </thead>
         <tbody>
+        {% import 'include/tx_type_symbol.html' as symbol %}
+        {% import 'include/tx_fee.html' as fee %}
         {% for tx in mempool.transactions[:mempool_limit] %}
             <tr>
                 <td title="{{tx.receive_time | from_timestamp | format_datetime}}">{{tx.receive_time | from_timestamp | ago}}</td>
-                <td class=TXType>{{tx_type_symbol}}</td>
+                <td>{{symbol.display(tx)}}</td>
                 <td><a href="/tx/{{tx.id_hash}}">{{tx.id_hash}}</a></td>
+                <td>{{fee.display(tx)}} /
+                    {{(tx.info.rct_signatures.txnFee * 1000 / tx.blob_size) | loki(tag=false, decimals=4)}}</td>
                 <td>{{tx.info.vin | length}}/{{tx.info.vout | length}}</td>
                 <td>{{tx.blob_size | si}}B</td>
             </tr>
