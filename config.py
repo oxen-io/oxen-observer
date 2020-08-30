@@ -9,10 +9,11 @@ blocks_per_page=20
 max_blocks_per_page=100
 
 # Some display and/or feature options:
-pusher=True
-key_image_checker=True
-output_key_checker=True
+pusher=False
+key_image_checker=False
+output_key_checker=False
 autorefresh_option=True
+enable_mixins_details=True
 
 # URLs to networks other than the one we are on:
 mainnet_url='https://blocks.lokinet.dev'

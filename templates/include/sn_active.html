@@ -22,7 +22,7 @@
                 <td>
                     {%if sn.requested_unlock_height%}
                         <span title="Service Node unlock in progress (unlocks at block {{sn.requested_unlock_height}})">🔓</span>
-                        {{((sn.requested_unlock_height - info.height) * 120 + server.timestamp.timestamp()) | from_timestamp | format_datetime('short')}}
+                        {{((sn.requested_unlock_height - info.height) * 120 + server.datetime.timestamp()) | from_timestamp | format_datetime('short')}}
                         ({{((sn.requested_unlock_height - info.height) * 120) | reltime}})
                     {%else%}
                         Staking Infinitely

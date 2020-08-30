@@ -15,7 +15,7 @@ Quick and dirty setup instructions for now:
     make -j6
     cd ../..
     ln -s pylokimq/build/pylokimq/pylokimq.cpython-*.so .
-    sudo apt install python3-flask python3-babel
+    sudo apt install python3-flask python3-babel python3-pygments
 
 (Note that we require a very recent python3-jinja package (2.11+), which may not be installed by the
 above.)

@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 
 import flask
-from datetime import datetime
+from datetime import datetime, timedelta
 import babel.dates
 import json
 import sys
 import statistics
+from werkzeug.routing import BaseConverter
+from pygments import highlight
+from pygments.lexers import JsonLexer
+from pygments.formatters import HtmlFormatter
 
 import config
 from lmq import FutureJSON, lmq_connection
@@ -18,6 +22,14 @@ if __name__ == '__main__':
     # DEBUG:
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.jinja_env.auto_reload = True
+
+class Hex64Converter(BaseConverter):
+    def __init__(self, url_map):
+        super().__init__(url_map)
+        self.regex = "[0-9a-fA-F]{64}"
+
+app.url_map.converters['hex64'] = Hex64Converter
+
 
 @app.template_filter('format_datetime')
 def format_datetime(value, format='long'):
@@ -36,20 +48,32 @@ def datetime_ago(value):
         disp += '-'
     if delta.days > 0:
         disp += '{}d '.format(delta.days)
-    disp += '{:2d}:{:02d}:{:02d}'.format(delta.seconds // 3600, delta.seconds // 60 % 60, delta.seconds % 60)
+    disp += '{:d}:{:02d}:{:02d}'.format(delta.seconds // 3600, delta.seconds // 60 % 60, delta.seconds % 60)
     return disp
 
 
 @app.template_filter('reltime')
-def relative_time(seconds):
+def relative_time(seconds, two_part=False, in_ago=True, neg_is_now=False):
+    if isinstance(seconds, timedelta):
+        seconds = seconds.seconds + 86400*seconds.days
+
     ago = False
-    if seconds == 0:
+    if seconds == 0 or (neg_is_now and seconds < 0):
         return 'now'
     elif seconds < 0:
         seconds = -seconds
         ago = True
 
-    if seconds < 90:
+    if two_part:
+        if seconds < 3600:
+            delta = '{:.0f} minutes {:.0f} seconds'.format(seconds//60, seconds%60//1)
+        elif seconds < 24 * 3600:
+            delta = '{:.0f} hours {:.1f} minutes'.format(seconds//3600, seconds%3600/60)
+        elif seconds < 10 * 86400:
+            delta = '{:.0f} days {:.1f} hours'.format(seconds//86400, seconds%86400/3600)
+        else:
+            delta = '{:.1f} days'.format(seconds / 86400)
+    elif seconds < 90:
         delta = '{:.0f} seconds'.format(seconds)
     elif seconds < 90 * 60:
         delta = '{:.1f} minutes'.format(seconds / 60)
@@ -60,7 +84,7 @@ def relative_time(seconds):
     else:
         delta = '{:.0f} days'.format(seconds / 86400)
 
-    return delta + ' ago' if ago else 'in ' + delta
+    return delta if not in_ago else delta + ' ago' if ago else 'in ' + delta
 
 
 @app.template_filter('roundish')
@@ -84,18 +108,28 @@ def format_si(value):
     return filter_round(value) + '{}'.format(si_suffix[i])
 
 @app.template_filter('loki')
-def format_loki(atomic, tag=True, fixed=False, decimals=9):
+def format_loki(atomic, tag=True, fixed=False, decimals=9, zero=None):
     """Formats an atomic current value as a human currency value.
     tag - if False then don't append " LOKI"
     fixed - if True then don't strip insignificant trailing 0's and '.'
     decimals - at how many decimal we should round; the default is full precision
+    fixed - if specified, replace 0 with this string
     """
-    disp = "{{:.{}f}}".format(decimals).format(atomic * 1e-9)
-    if not fixed and decimals > 0:
-        disp = disp.rstrip('0').rstrip('.')
+    if atomic == 0 and zero:
+        disp = zero
+    else:
+        disp = "{{:.{}f}}".format(decimals).format(atomic * 1e-9)
+        if not fixed and decimals > 0:
+            disp = disp.rstrip('0').rstrip('.')
     if tag:
         disp += ' LOKI'
     return disp
+
+# For some inexplicable reason some hex fields are provided as array of byte integer values rather
+# than hex.  This converts such a monstrosity to hex.
+@app.template_filter('bytes_to_hex')
+def bytes_to_hex(b):
+    return "".join("{:02x}".format(x) for x in b)
 
 @app.after_request
 def add_global_headers(response):
@@ -110,13 +144,13 @@ def css():
 
 def get_sns_future(lmq, lokid):
     return FutureJSON(lmq, lokid, 'rpc.get_service_nodes', 5,
-            args=[json.dumps({
+            args={
                 'all': False,
                 'fields': { x: True for x in ('service_node_pubkey', 'requested_unlock_height', 'last_reward_block_height',
                     'last_reward_transaction_index', 'active', 'funded', 'earned_downtime_blocks',
                     'service_node_version', 'contributors', 'total_contributed', 'total_reserved',
                     'staking_requirement', 'portions_for_operator', 'operator_address', 'pubkey_ed25519',
-                    'last_uptime_proof', 'service_node_version') } }).encode()])
+                    'last_uptime_proof', 'service_node_version') } })
 
 def get_sns(sns_future, info_future):
     info = info_future.get()
@@ -140,7 +174,7 @@ def get_sns(sns_future, info_future):
 def template_globals():
     return {
         'config': conf,
-        'server': { 'timestamp': datetime.utcnow() }
+        'server': { 'datetime': datetime.utcnow() }
     }
 
 
@@ -155,14 +189,14 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
     stake = FutureJSON(lmq, lokid, 'rpc.get_staking_requirement', 10)
     base_fee = FutureJSON(lmq, lokid, 'rpc.get_fee_estimate', 10)
     hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
-    mempool = FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5, args=[json.dumps({"tx_extra":True}).encode()])
+    mempool = FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5, args={"tx_extra":True})
     sns = get_sns_future(lmq, lokid)
 
     # This call is slow the first time it gets called in lokid but will be fast after that, so call
     # it with a very short timeout.  It's also an admin-only command, so will always fail if we're
     # using a restricted RPC interface.
     coinbase = FutureJSON(lmq, lokid, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
-            args=[json.dumps({"height":0, "count":2**31-1}).encode()])
+            args={"height":0, "count":2**31-1})
 
     custom_per_page = ''
     if per_page is None or per_page <= 0 or per_page > config.max_blocks_per_page:
@@ -190,11 +224,11 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
         end_height = max(0, height - per_page*page - 1)
         start_height = max(0, end_height - per_page + 1)
 
-    blocks = FutureJSON(lmq, lokid, 'rpc.get_block_headers_range', args=[json.dumps({
+    blocks = FutureJSON(lmq, lokid, 'rpc.get_block_headers_range', args={
         'start_height': start_height,
         'end_height': end_height,
         'get_tx_hashes': True,
-        }).encode()]).get()['headers']
+        }).get()['headers']
 
     # If 'txs' is already there then it is probably left over from our cached previous call through
     # here.
@@ -205,12 +239,12 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             txids.append(b['miner_tx_hash'])
             if 'tx_hashes' in b:
                 txids += b['tx_hashes']
-        txs = FutureJSON(lmq, lokid, 'rpc.get_transactions', args=[json.dumps({
+        txs = FutureJSON(lmq, lokid, 'rpc.get_transactions', args={
             "txs_hashes": txids,
             "decode_as_json": True,
             "tx_extra": True,
             "prune": True,
-            }).encode()]).get()
+            }).get()
         txs = txs['txs']
         i = 0
         for tx in txs:
@@ -276,3 +310,84 @@ def sns():
         inactive_sns=inactive,
         **template_globals(),
         )
+
+
+@app.route('/tx/<hex64:txid>')
+@app.route('/tx/<hex64:txid>/<int:more_details>')
+def show_tx(txid, more_details=False):
+    lmq, lokid = lmq_connection()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
+    txs = FutureJSON(lmq, lokid, 'rpc.get_transactions', cache_seconds=10, args={
+        "txs_hashes": [txid],
+        "decode_as_json": True,
+        "tx_extra": True,
+        "prune": True,
+        }).get()
+
+    if 'txs' not in txs or not txs['txs']:
+        return flask.render_template('not_found.html',
+                info=info.get(),
+                type='tx',
+                id=txid,
+                **template_globals(),
+                )
+    tx = txs['txs'][0]
+    if 'info' not in tx:
+        tx['info'] = json.loads(tx["as_json"])
+        del tx["as_json"]
+
+        # The "extra" field is retardedly in per-byte values, convert it to a hex string:
+        tx['info']['extra'] = bytes_to_hex(tx['info']['extra'])
+
+    koffset_info = {} # { amount => { keyoffset => {output-info} } }
+    block_info_req = None
+    if 'vin' in tx['info']:
+        if len(tx['info']['vin']) == 1 and 'gen' in tx['info']['vin'][0]:
+            tx['coinbase'] = True
+        elif tx['info']['vin'] and config.enable_mixins_details:
+            # Load output details for all outputs contained in the inputs
+            outs_req = [{"amount":inp['key']['amount'], "index":koff} for inp in tx['info']['vin'] for koff in inp['key']['key_offsets']]
+            outputs = FutureJSON(lmq, lokid, 'rpc.get_outs', args={
+                'get_txid': True,
+                'outputs': outs_req,
+                }).get()
+            if outputs and 'outs' in outputs and len(outputs['outs']) == len(outs_req):
+                outputs = outputs['outs']
+                # Also load block details for all of those outputs:
+                block_info_req = FutureJSON(lmq, lokid, 'rpc.get_block_header_by_height', args={
+                    'heights': [o["height"] for o in outputs]
+                })
+                i = 0
+                for inp in tx['info']['vin']:
+                    amount = inp['key']['amount']
+                    if amount not in koffset_info:
+                        koffset_info[amount] = {}
+                    ki = koffset_info[amount]
+                    for ko in inp['key']['key_offsets']:
+                        ki[ko] = outputs[i]
+                        i += 1
+
+    if more_details:
+        formatter = HtmlFormatter(cssclass="syntax-highlight", style="native")
+        more_details = {
+                'details_css': formatter.get_style_defs('.syntax-highlight'),
+                'details_html': highlight(json.dumps(tx, indent="\t", sort_keys=True), JsonLexer(), formatter),
+                }
+    else:
+        more_details = {}
+
+    block_info = {} # { height => {block-info} }
+    if block_info_req:
+        bi = block_info_req.get()
+        if 'block_headers' in bi:
+            for bh in bi['block_headers']:
+                block_info[bh['height']] = bh
+
+    return flask.render_template('tx.html',
+            info=info.get(),
+            tx=tx,
+            koffset_info=koffset_info,
+            block_info=block_info,
+            **more_details,
+            **template_globals(),
+            )

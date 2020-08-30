@@ -1,0 +1,649 @@
+{% extends "_basic.html" %}
+
+{% block content %}
+
+<div class="Wrapper">
+
+    <h4 style="margin:5px"><label>TX Hash:</label> {{tx.tx_hash}}</H4>
+    {# FIXME
+    {%if config.enable_mixins_details%}
+        <H4 style="margin:5px"><label>TX Prefix Hash:</label> {{tx.tx_prefix_hash}}</H4>
+    {%endif%}
+    #}
+    <h4 style="margin:5px"><label>TX Public Key:</label> <span id="tx_pub_key">{{tx.extra.pubkey}}</span></H4>
+    <span id="add_tx_pub_keys" style="display: none;">
+        {%-for pk in tx.extra.additional_pubkeys%}
+            {%-if not loop.first%}; {%endif-%}
+            {{pk}}
+        {%-endfor-%}
+    </span>
+
+    {%if tx.extra.payment_id%}
+        <h4 style="margin:5px"><label>Payment ID ({%if tx.extra_payment_id|length == 64%}un{%endif%}encrypted):</label> <span id="payment_id">{{tx.extra.payment_id}}</span></h4>
+    {%endif%}
+
+{# FIXME - what is this?
+    {%if have_prev_hash%}
+        <h4>Previous TX: <a href="/tx/{{prev_hash}}">{{prev_hash}}</a></h4>
+    {%endif%}
+
+    {%if have_next_hash%}
+        <h4>Next TX: <a href="/tx/{{next_hash}}">{{next_hash}}</a></h4>
+    {%endif%}
+#}
+
+    <h2>Metadata</h2>
+    <div class="TitleUnderliner"></div>
+
+    <h4 class="info_list nowrap-spans">
+        <span><label>In block:</label> <a href="/block/{{tx.block_height}}">{{tx.block_height}}</a></span>
+        {% import 'include/tx_type_symbol.html' as sym %}
+        <span><label>TX Version/Type:</label> {{tx.info.version}}/{{sym.display(tx, text=true)}}</span>
+        {%if not have_raw_tx%}
+            <span title="Unix timestamp: {{tx.block_timestamp}}"><label>Timestamp:</label> {{tx.block_timestamp | from_timestamp | format_datetime('short')}} UTC
+            ({{tx.block_timestamp | from_timestamp | ago}} ago)</span>
+        {%endif%}
+
+        {# FIXME - if in mempool then link to mempool page instead #}
+        <span><label>Fee (Per kB):</label>
+            {%if tx.coinbase%}
+                N/A
+            {%else%}
+                {% import 'include/tx_fee.html' as fee %}
+                {{fee.display(tx)}}
+                ({{(tx.info.rct_signatures.txnFee * 1000 / tx.size) | loki(tag=false, decimals=6)}})
+            {%endif%}
+        </span>
+        <span title="{{tx.size}} bytes"><label>TX Size:</label> {{tx.size|si}}B</span>
+
+        <span><label>No. Confirmations:</label> {{info.height - tx.block_height}}</span>
+    <span><label>RingCT/RingCT Type:</label> {%if tx.info.version >= 2 and not tx.coinbase%}Yes/{{tx.info.rct_signatures.type}}{%else%}No{%endif%}</span>
+
+        {%if tx.coinbase and tx.extra.sn_winner%}
+          <span><label>Service Node Winner:</label>
+            {%if tx.extra.sn_winner == "0000000000000000000000000000000000000000000000000000000000000000"%}
+              None
+            {%else%}
+              <a href="/sn/{{tx.extra.sn_winner}}">{{tx.extra.sn_winner}}</a>
+            {%endif%}
+          </span>
+        {%endif%}
+    </h4>
+    <div class="info-item"><label>Extra: </label>{{tx.info.extra}}</div>
+
+    {% if tx.info.version >= 4 -%}
+        {% if tx.info.type == 1 and 'sn_state_change' in tx.extra %}
+            <h2>
+            {%- if tx.extra.sn_state_change.type == 'decom' -%}
+                👎 Service Node Decommission Metadata
+            {% elif tx.extra.sn_state_change.type == 'recom' -%}
+                👍 Service Node Recommission Metadata
+            {% elif tx.extra.sn_state_change.type == 'dereg' -%}
+                🚫 Service Node Deregistration Metadata
+            {% elif tx.extra.sn_state_change.type == 'ip' -%}
+                📋 Service Node IP Change Metadata
+            {% else -%}
+                ❓ Unknown State Change Metadata
+            {% endif -%}
+            </h2>
+
+            {#FIXME -- all the values below need to be fixed#}
+            <div class="TitleDivider"></div>
+            {%if state_change_have_pubkey_info%}
+                <p class="state-change-pubkey">Service Node Public Key: <a href="/sn/{{state_change_service_node_pubkey}}">{{state_change_service_node_pubkey}}</a></p>
+            {%endif%}
+            <p>Service Node Index: {{state_change_service_node_index}}</p>
+            <p>Block Height: <a href="/block/{{state_change_block_height}}">{{state_change_block_height}}</a></p>
+
+            <table class="Table">
+                <tr class="TableHeader">
+                    <th class="voter-index">Voters Quorum Index</th>
+                    {%if state_change_have_pubkey_info%}
+                        <th class="voter-pubkey">Voter Public Key</th>
+                    {%endif%}
+                    <th class="voter-signature">Signature</th>
+                </tr>
+
+                {%if state_change_vote_array%}
+                    <tr>
+                        <td class="voter-index">{{state_change_voters_quorum_index}}</td>
+                        {%if state_change_have_pubkey_info%}
+                            <td class="voter-pubkey"><a href="/sn/{{state_change_voter_pubkey}}">{{state_change_voter_pubkey}}</a></td>
+                        {%endif%}
+                        <td class="voter-signature" title="{{state_change_signature}}">{{state_change_signature}}</td>
+                    </tr>
+                {%endif%}
+            </table>
+
+        {% elif tx.info.type == 2 %}
+            <h2>🔓 Service Node Unlock</h2>
+            <p class="unlock-pubkey"><label>Service Node Public Key:</label> <a href="/sn/{{tx.extra.sn_pubkey}}">{{tx.extra.sn_pubkey}}</a></p>
+            <p><label>Unlock key image:</label> {{unlock_key_image}}</p> {# FIXME #}
+            <p><label>Unlock signature:</label> {{unlock_signature}}</p> {# FIXME #}
+        {% elif tx.info.type == 4 and 'lns' in tx.extra %}
+            {% if 'buy' in tx.extra.lns %}
+                <h2>🎫 Loki Name Service Registration</h2>
+            {% elif 'update' in tx.extra.lns %}
+                <h2>💾 Loki Name Service Update</h2>
+            {% endif %}
+            {#FIXME - show some metadata?#}
+        {% elif 'sn_registration' in tx.extra %}
+            <h2>🏁 Service Node Register Metadata</h2>
+            <div class="TitleDivider"></div>
+            <p><label>Service Node Public Key:</label> {{tx.extra.sn_pubkey}}</p>
+            <p><label>Operator fee:</label>
+            {%if tx.extra.sn_registration.fee == 1000000%}N/A (solo registration)
+            {%else%}{{(tx.extra.sn_registration.fee / 10000) | chop0}}%
+            {%endif%}</p>
+            <p><label>Expiration:</label> {{tx.extra.sn_registration.expiry | from_timestamp | format_datetime}} ({{tx.extra.sn_registration.expiry}}),
+            or {{(tx.extra.sn_registration.expiry|from_timestamp - server.timestamp) | reltime}}</p>
+
+            <h2>Service Node Registration Address(es)</h2>
+            <div class="TitleDivider"></div>
+            <table class="Table">
+                <thead>
+                    <tr>
+                        <td>Address</td>
+                        <td>Portions</td>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {%for c in tx.extra.sn_registration.contributors%}
+                        <tr>
+                            <td>{{c.wallet}}</td>
+                            <td>{{(c.portion / 10000) | chop0}}%</td>
+                        </tr>
+                    {%endfor%}
+                </tbody>
+            </table>
+        {% elif 'sn_contributor' in tx.extra %}
+            <h2>⚑ Service Node Contribution</h2>
+            <div class="TitleDivider"></div>
+            <p><label>Service Node Public Key:</label> {{tx.extra.sn_pubkey}}</p>
+            <p><label>Contributor Address:</label> {{tx.extra.sn_contributor}}</p>
+            <p><label>Contribution Amount:</label> {#FIXME {contribution_amount}#}</p>
+        {% endif %}
+    {% endif %}
+
+
+    <h2>Outputs</h2>
+    <h4 class="Subtitle">{{tx.info.vout|length}} output(s) for total of
+        {{tx.info.vout | sum(attribute='amount') | loki(zero='<span title="Regular LOKI tx amounts are private">???</span>') | safe}}</h4>
+    <div class="TitleDivider"></div>
+    <div class="tx-outputs">
+        <table class="Table">
+            <thead>
+                <tr>
+                    <td>Stealth Address</td>
+                    <td>Amount</td>
+                    <td title="Global blockchain output counter">Output Index</td>
+                </tr>
+            </thead>
+
+            <tbody>
+                {%for out in tx.info.vout%}
+                    <tr>
+                        <td><label>{{loop.index0}}:</label> {{out.target.key}}</td>
+                        <td>{{out.amount | loki(zero='?')}}</td>
+                        <td>{{tx.output_indices[loop.index0]}}{# FIXME: of {{num_outputs}}#}</td>
+                    </tr>
+                {%endfor%}
+            </tbody>
+        </table>
+    </div>
+
+    {#FIXME
+    {%if not have_raw_tx%}
+    <div>
+        <div class="tabs">
+            <div class="tab">
+                <input type="radio" id="tab-1" name="tab-group-1" checked>
+                <label for="tab-1">Decode Outputs</label>
+                <div class="content">
+                    <p style="margin: 0px">Check which outputs belong to given Loki address/subaddress and viewkey</p>
+                    <p style="margin: 0px">
+                        For RingCT transactions, outputs' amounts are also decoded
+                        <br/>
+                        {%if enable_js%}
+                            Note: Address/Subaddress and viewkey are NOT sent to the server, as the calculations are done on the client side
+                        {%else%}
+                            Note: address/Subaddress and viewkey are sent to the server, as the calculations are done on the server side
+                        {%endif%}
+                    </p>
+                    <form action="/myoutputs" method="post" style="width:100%; margin-top:2px" class="style-1">
+                        <input type="hidden" name="tx_hash" value="{{tx_hash}}"><br/>
+                        <input type="text" name="lok_address" size="110" placeholder="Loki Address/Subaddress"><br/>
+                        <input type="text" name="viewkey" size="110" placeholder="Private Viewkey" style="margin-top:5px"><br/>
+                        <input type="hidden" name="raw_tx_data" value="{{raw_tx_data}}">
+                        <!--above raw_tx_data field only used when checking raw tx data through tx pusher-->
+
+                        {%if enable_js%}
+                        <!-- if have js, DONOT submit the form to server.
+                             change submit button, to just a button -->
+                            <button type="button" class="PageButton" style="min-width: 10em; font-weight: bold; margin-top:5px" id="decode_btn" >Decode outputs</button>
+                        {%else%}
+                            <input type="submit" class="PageButton" value="Decode Outputs" style="min-width: 10em; margin-top:5px" >
+                        {%endif%}
+                    </form>
+                </div>
+            </div>
+
+            <div class="tab">
+                <input type="radio" id="tab-2" name="tab-group-1">
+                <label for="tab-2">Prove Sending</label>
+
+                <div class="content">
+                    <p style="margin: 0px">Prove to someone that you have sent them Loki in this transaction</p>
+                    <p style="margin: 0px">
+                        TX private key can be obtained using <i>get_tx_key</i>
+                        command in  <i>loki-wallet-cli</i> command line tool
+                        <br/>
+                        {%if enable_js%}
+                            Note: Address/Subaddress and TX private key are NOT sent to the server, as the calculations are done on the client side
+                        {%else%}
+                            Note: Address/Subaddress and TX private key are sent to the server, as the calculations are done on the server side
+                        {%endif%}
+                    </p>
+                    <form action="/prove" method="post" style="width:100%;margin-top:2px" class="style-1">
+                       <input type="hidden" name="txhash" value="{{tx_hash}}"><br/>
+                       <input type="text" name="txprvkey" size="120" placeholder="TX Private Key"><br/>
+                        <input type="hidden" name="raw_tx_data" value="{{raw_tx_data}}">
+                        <!--above raw_tx_data field only used when checking raw tx data through tx pusher-->
+                       <input type="text" name="lokaddress" size="120" placeholder="Recipient's Loki Address/Subaddress" style="margin-top:5px"><br/>
+
+                        {%if enable_js%}
+                            <!-- if have js, DONOT submit the form to server.
+                                 change submit button, to just a button -->
+                            <button type="button" class="PageButton" style="min-width: 10em; margin-top:5px" id="prove_btn">Prove sending</button>
+                        {%else%}
+                           <input type="submit" class="PageButton" value="Prove Sending" style="min-width: 10em; margin-top:5px">
+                        {%endif%}
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {%endif%}
+    #}
+
+    {#FIXME
+    {%if enable_js%}
+
+        <!-- to disply results from deconding and proving txs using js -->
+        <div id="decode-prove-results" class="center" style="width: 80%; margin-top:10px;border-style: dotted">
+
+        </div>
+
+        <script>
+
+            //  here we handle button presses from the above forms
+            //  to decode and prove txs.
+            $(document).ready(function() {
+
+                // we need output pubplic keys, their indexes and amounts.
+                // all this is already avaliable on the html, but we can use
+                // musch framework to produce js array for this
+
+                var tx_json = {%if tx_json_raw%}{%endif%};
+
+                var tx_public_key = $("#tx_pub_key").text();
+
+                // when we process multi-ouput tx, it can have extra public keys
+                // due to sub-addresses
+                var add_tx_pub_keys = $("#add_tx_pub_keys").text().split(';').slice(0, -1);
+
+                //console.log("add_tx_pub_keys: ", add_tx_pub_keys);
+
+                var payment_id = $("#payment_id").text();
+
+
+                $("#decode_btn").click(function() {
+
+                    var address = $("input[name=lok_address]").val().trim();
+                    var viewkey = $("input[name=viewkey]").val().trim();
+
+                    if (!address || !viewkey) {
+                        $("#decode-prove-results").html("<h4>Address or viewkey key not provided!</h4>");
+                        return;
+                    }
+
+                    // not used when decoding, but used when proving.
+                    // so we just use array here
+                    multiple_tx_secret_keys = [];
+
+                    try {
+                        var address_decoded = decode_address(address);
+                        decodeOutputs(tx_json, tx_public_key, viewkey,
+                                      address_decoded.spend, payment_id,
+                                      add_tx_pub_keys, multiple_tx_secret_keys, false);
+                    } catch(err){
+                        console.log(err);
+                        $("#decode-prove-results").html('<h4>Error: ' + err + '</h4>' );
+                    }
+                });
+
+                $("#prove_btn").click(function() {
+
+                    var address    = $("input[name=lokaddress]").val().trim();
+                    var tx_prv_key = $("input[name=txprvkey]").val().trim();
+
+                    if (!address || !tx_prv_key) {
+                        $("#decode-prove-results").html("<h4>Address or tx private key not provided!</h4>");
+                        return;
+                    }
+
+                    try {
+                        // when using subaddress, there can be more than one tx_prv_key
+                        var multiple_tx_prv_keys = parse_str_secret_key(tx_prv_key);
+
+                        var address_decoded = decode_address(address);
+                        decodeOutputs(tx_json, address_decoded.view, tx_prv_key,
+                                      address_decoded.spend, payment_id,
+                                      add_tx_pub_keys, multiple_tx_prv_keys, true);
+                    } catch(err){
+                        console.log(err);
+                        $("#decode-prove-results").html('<h4>Error: ' + err + '</h4>' );
+                    }
+                });
+
+            });
+
+            // based on C++ code by stoffu
+            function parse_str_secret_key(key_str) {
+
+                var multiple_tx_secret_keys = [];
+
+                var num_keys = Math.floor(key_str.length / 64);
+
+                if (num_keys * 64 !=  key_str.length)
+                    throw "num_keys * 64 !=  key_str.length";
+
+                for (var i = 0; i < num_keys; i++)
+                {
+                    multiple_tx_secret_keys.push(key_str.slice(64*i, 64*i + 64));
+                }
+
+                return multiple_tx_secret_keys;
+            }
+
+
+            function decodeOutputs(tx_json, pub_key, sec_key,
+                                   address_pub_key, payment_id,
+                                   add_tx_pub_keys,  multiple_tx_prv_keys, tx_prove) {
+                //console.log(tx_json);
+
+                var is_rct = (tx_json.version === 2);
+                var rct_type = (is_rct ? tx_json.rct_signatures.type : -1);
+
+                var key_derivation = "";
+
+                if (tx_prove)
+                    key_derivation = generate_key_derivation(pub_key, multiple_tx_prv_keys[0]);
+                else
+                    key_derivation = generate_key_derivation(pub_key, sec_key);
+
+
+                var add_key_derivation = [];
+
+                if (add_tx_pub_keys) {
+                    for (var i = 0; i < add_tx_pub_keys.length; i++)
+                    {
+                        if (!tx_prove)
+                            add_key_derivation.push(generate_key_derivation(add_tx_pub_keys[i], sec_key));
+                        else
+                            add_key_derivation.push(generate_key_derivation(pub_key, multiple_tx_prv_keys[i+1]));
+                    }
+                }
+
+                //console.log("add_key_derivation: ", add_key_derivation);
+
+
+                // go over each tx output, and check if it is ours or not
+                var decoding_results_str = '<h3>Output decoding results</h3>';
+
+                decoding_results_str += '<table class="center">';
+
+                decoding_results_str += '<tr>' +
+                    '<td></td>' +
+                    '<td>output public key</td>' +
+                    '<td>amount</td>' +
+                    '<td>output match?</td>' +
+                    '</tr>';
+
+                var output_idx = 0;
+
+                var sum_outptus = 0;
+
+                tx_json.vout.forEach(function(output) {
+
+                    var output_pub_key = output.target.key;
+                    var amount         = output.amount;
+
+                    var pubkey_generated = derive_public_key(key_derivation, output_idx, address_pub_key);
+
+                    var mine_output = (output_pub_key == pubkey_generated);
+
+                    var with_additional = false;
+
+                    var mine_output_str = "false";
+
+                    if (!mine_output && add_tx_pub_keys.length == tx_json.vout.length) {
+
+                        pubkey_generated = derive_public_key(add_key_derivation[output_idx],
+                                                             output_idx, address_pub_key);
+
+                        mine_output = (output_pub_key == pubkey_generated);
+                        with_additional = true;
+                    }
+
+                    if (mine_output) {
+
+                        mine_output_str = '<span style="color: #008009;font-weight: bold">true</span>';
+
+                        if (is_rct && rct_type > 0 /* not coinbase*/) {
+                            try {
+                                //var ecdh = decodeRct(tx_json.rct_signatures, output_idx, key_derivation);
+                                var ecdh = decodeRct(tx_json.rct_signatures, output_idx,
+                                                     (with_additional ? add_key_derivation[output_idx] : key_derivation));
+
+
+                                amount = parseInt(ecdh.amount);
+                            } catch (err) {
+                                decoding_results_str += "<span class='validNo'>RingCT amount for output " + i + " with pubkey: " + output_pub_key + "</span>" + "<br>"; //rct commitment != computed
+                                throw "invalid rct amount";
+                            }
+                        }
+
+                        sum_outptus += amount;
+                    }
+
+                    decoding_results_str += "<tr>"
+                        +"<td>" + output_idx +  "</td>"
+                        +"<td>" + output_pub_key +  "</td>"
+                        +"<td>" + (amount / 1e9) +  "</td>"
+                        +"<td>" + mine_output_str +  "</td>"
+                        +"</tr>";
+
+                    //console.log(output[1], pubkey_generated);
+
+                    output_idx++;
+                });
+
+                decoding_results_str += "</table>";
+
+                decoding_results_str += "<h3>Sum LOK from matched outputs (i.e., incoming LOK): " + (sum_outptus / 1e9) + "</h3>"
+
+
+                // decrypt payment_id8 which results in using
+                // integrated address
+                if (payment_id.length == 16) {
+                    if (pub_key) {
+                        var decrypted_payment_id8
+                            = decrypt_payment_id(payment_id, pub_key, sec_key);
+                        console.log("decrypted_payment_id8: " + decrypted_payment_id8);
+                        decoding_results_str += "<h5>Decrypted payment id: "
+                            + decrypted_payment_id8
+                            + " (value incorrect if you are not the recipient of the tx)</h5>"
+                    }
+                }
+
+
+                $("#decode-prove-results").html(decoding_results_str);
+            }
+
+        </script>
+
+    {%endif%}
+    #}
+
+    {%if not tx.coinbase and tx.info.vin|length > 0 %}
+      <div style="height: 1em"></div>
+
+      <h2>Inputs</h2>
+      <h4 class="Subtitle">{{tx.info.vin|length}} input(s) for total of
+        {{tx.info.vin | sum(attribute='key.amount') | loki(zero='<span title="Regular LOKI tx amounts are private">???</span>') | safe}}</h4>
+      <div class="TitleDivider"></div>
+
+      {#FIXME#}
+      {%if enable_mixins_details%}
+        <h3>Inputs' ring size time scale (from {{min_mix_time}} till {{max_mix_time}};
+          resolution: {{timescales_scale}} days{%if have_raw_tx%}; R - real ring member {%endif%})
+        </h3>
+        <div class="center">
+          <ul class="center">
+            {%if timescales%}
+              <li  style="list-style-type: none; text-align: center; font-size: 8px">|{{timescale}}|</li>
+            {%endif%}
+          </ul>
+        </div>
+      {%endif%}
+
+
+      <div class="tx-inputs">
+        <table class="Table">
+          {%for inp in tx.info.vin if 'key' in inp%}
+            <tr>
+              <td style="text-align: left;" colspan="2">
+                <label>Key Image {{loop.index0}}:</label> {{inp.key.k_image}}
+                {#FIXME:#}
+                {%if have_raw_tx%}
+                  Already spent:
+                  {%if already_spent%}
+                    <span style="color: red; font-weight: bold;">True</span>
+                  {%else%}
+                    False
+                  {%endif%}
+                {%endif%}
+              </td>
+              <td style="text-align: right">Amount: {{inp.key.amount | loki(zero='?')}}</td>
+            </tr>
+            {%if config.enable_mixins_details%}
+              <tr class="TableHeader">
+                <td>Ring Members</td>
+                {%if have_raw_tx%}
+                  <td>Is It Real?</td>
+                {%endif%}
+                <td>Block</td>
+                <td>Timestamp (UTC)</td>
+              </tr>
+              {%for koffset in inp.key.key_offsets%}
+                {%set oinfo = koffset_info[inp.key.amount][koffset]%}
+                {%set binfo = block_info[oinfo.height]%}
+                <tr>
+                  <td><label>- {{loop.index0}}:</label> <a href="/tx/{{oinfo.txid}}">{{oinfo.key}}</a></td>
+                  {%if have_raw_tx%}
+                    {%if mix_is_it_real%}
+                      <td><span style="color: #008009;font-weight: bold">{{mix_is_it_real}}</span></td>
+                    {%else%}
+                      <td>{{mix_is_it_real}}</td>
+                    {%endif%}
+                  {%endif%}
+                  <td><a href="/block/{{binfo.height}}">{{binfo.height}}</a></td>
+                  <td>{{binfo.timestamp | from_timestamp | format_datetime('short')}}
+                    ({{(binfo.timestamp|from_timestamp - server.datetime) | reltime}})
+                  </td>
+                </tr>
+              {%endfor%}
+            {%endif%}
+          {%endfor%}
+        </table>
+      </div>
+    {%endif%}
+
+    {%if details_html%}
+      <style type="text/css">
+{{details_css | safe}}
+      </style>
+      <div class="TitleDivider" id="more_details"></div>
+      {{details_html | safe}}
+    {%else%}
+      <h5>
+        <a href="/tx/{{tx.tx_hash}}/1">Show raw details</a>
+      </h5>
+    {%endif%}
+
+
+      {%if not have_raw_tx%}
+        <div style="height: 1em;"></div>
+        {%if with_ring_signatures%}
+          <div class="TitleDivider"></div>
+          <div id="decoded-inputs">
+            <div style="border: 1px solid #008552; margin-top: 1em; padding: 1em; background-color: rgba(0, 0, 0, 0.2)">
+              <code class="center" style="white-space: pre-wrap; font-size: 1.5em;">
+                {{tx_json}}
+              </code>
+            </div>
+          </div>
+          <br/><br/>
+          <p style="margin-top:1px"><a href="/tx/{{tx_hash}}">Less Details</a></p>
+        {%elif show_more_details_link%}
+          <h5 style="margin-top:1px">
+            <a href="/tx/{{tx_hash}}/1">More Details</a>
+            {%if enable_as_hex%}
+              | <a href="/txhex/{{tx_hash}}">TX As Hex</a>
+              | <a href="/ringmembershex/{{tx_hash}}">TX Ring Members As Hex</a>
+            {%endif%}
+          </h5>
+        {%endif%}
+      {%endif%}
+
+
+{%if show_cache_times%}
+  <div>
+    {%if construction_time%}
+      <div style="height: 1em;"></div>
+      <div class="TitleDivider"></div>
+
+      <p style="margin-top: 1px;color:#949490">
+      TX details construction time: {{construction_time}} s
+      {%if from_cache%}
+        <br/>TX read from the TX cache
+      {%endif%}
+      </p>
+    {%endif%}
+  </div>
+{%endif%}
+
+<div>
+  {%if has_error%}
+    <h4 style="color:red">Attempt failed</h4>
+    {%if error_tx_not_found%}
+      <h4>Tx {{tx_hash}} not found. </h4>
+      <div class="center" style="text-align: center;width:80%">
+        <p> If this is newly made tx, it can take some time (up to minute)
+        for it to get propagated to all nodes' txpools.
+        <br/><br/>
+        Please refresh in 10-20 seconds to check if its here then.
+        </p>
+      </div>
+    {%endif%}
+  {%elif txs%}
+    {{tx_details}}
+  {%endif%}
+</div>
+
+</div>
+
+{% endblock %}

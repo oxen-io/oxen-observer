@@ -3,20 +3,20 @@
 {% block content %}
     <div class="Wrapper">
 
-        <div class="nowrap-spans">
-            <span>Server Time: {{ server.timestamp | format_datetime }}</span>
-            <span>| <a href="/txpool">Transaction Pool</a></span>
+        <div class="info_list nowrap-spans">
+            <span><label>Server Time:</label> {{ server.datetime | format_datetime }}</span>
+            <span><a href="/txpool">Transaction Pool</a></span>
             {% if config.pusher %}
-                <span>| <a href="/rawtx">Transaction pusher </a></span>
+                <span><a href="/rawtx">Transaction pusher </a></span>
             {% endif %}
             {% if config.key_image_checker %}
-                <span>| <a href="/rawkeyimgs">Key images checker</a></span>
+                <span><a href="/rawkeyimgs">Key images checker</a></span>
             {% endif %}
             {% if config.output_key_checker %}
-                <span>| <a href="/rawoutputkeys">Output keys checker</a></span>
+                <span><a href="/rawoutputkeys">Output keys checker</a></span>
             {% endif %}
             {% if config.autorefresh_option %}
-                <span>|
+                <span>
                     {% if refresh %}
                         <a href="/">Autorefresh is ON ({{refresh}} s)</a>
                     {% else %}
@@ -25,53 +25,66 @@
                 </span>
             {% endif %}
             {% if config.testnet_url and not info.testnet %}
-                <span>| <a href="{{config.testnet_url}}">Go to testnet explorer</a></span>
+                <span><a href="{{config.testnet_url}}">Go to testnet explorer</a></span>
             {% endif %}
             {% if config.devnet_url and not info.devnet %}
-                <span>| <a href="{{config.devnet_url}}">Go to devnet explorer</a></span>
+                <span><a href="{{config.devnet_url}}">Go to devnet explorer</a></span>
             {% endif %}
             {% if config.mainnet_url and not info.mainnet %}
-                <span>| <a href="{{config.mainnet_url}}">Go to mainnet explorer</a></span>
+                <span><a href="{{config.mainnet_url}}">Go to mainnet explorer</a></span>
             {% endif %}
             {% if info.testnet %}
-                <span>| This is <span style="color:#ff6b62; font-weight: bold">TESTNET</span> blockchain</span>
+                <span>This is <span style="color:#ff6b62; font-weight: bold">TESTNET</span> blockchain</span>
             {% elif info.devnet %}
-                <span>| This is <span style="color:#af5bd2; font-weight: bold">DEVNET</span> blockchain</span>
+                <span>This is <span style="color:#af5bd2; font-weight: bold">DEVNET</span> blockchain</span>
             {% endif %}
         </div>
 
+        <div class="TitleDivider"></div>
 
         {% if info %}
-            <h3 class="general_info nowrap-spans">
-                <span>Hard fork: v{{hf.version}}</span>
-                <span>| Network difficulty: {{info.difficulty}}</span>
-                <span>| Hash rate: ~{{(info.difficulty / info.target) | si }}H/s</span>
-                <span>| Staking requirement: {{stake.staking_requirement | loki}}</span>
-                <span title="{{(2500 * fees.fee_per_byte + 2*fees.fee_per_output) | loki}} for a typical simple transaction (~2.5kB, 2 outputs)">|
-                    Base fee:
+            <h3 class="general_info info_list nowrap-spans">
+                <span><label>Height:</label> {{info.height}}</span>
+                <span><label>Hard fork:</label> v{{hf.version}}</span>
+                {% if hf.version >= 16 %}
+                    <span title="{{ info.pulse_target_timestamp | from_timestamp | format_datetime }}
+                                 {%-if info.pulse_target_timestamp != info.pulse_ideal_timestamp %}
+{{ (info.pulse_target_timestamp - info.pulse_ideal_timestamp) | reltime(two_part=true, in_ago=false) }}
+                                 {%-if info.pulse_target_timestamp > info.pulse_ideal_timestamp %} behind {%else%} ahead of {%endif%} schedule
+                                 {%-endif-%}
+                                 ">
+                        <label>Next Pulse:</label> {{(info.pulse_target_timestamp|from_timestamp - server.datetime) | reltime(neg_is_now=true) }}
+                    </span>
+                {% else %}
+                    <span><label>Network difficulty:</label> {{info.difficulty}}</span>
+                    <span><label>Hash rate:</label> ~{{(info.difficulty / info.target) | si }}H/s</span>
+                {% endif %}
+                <span><label>Staking requirement:</label> {{stake.staking_requirement | loki}}</span>
+                <span title="{{(2500 * fees.fee_per_byte + 2*fees.fee_per_output) | loki}} for a typical simple transaction (~2.5kB, 2 outputs)">
+                    <label>Base fee:</label>
                     {{fees.fee_per_output | loki}}/output + {{(fees.fee_per_byte * 1000) | loki}}/kB
                 </span>
-                <span title="{{(2500 * fees.blink_fee_per_byte + 2*fees.blink_fee_per_output) | loki}} for a typical simple blink transaction (~2.5kB, 2 outputs)">|
-                    Blink fee:
+                <span title="{{(2500 * fees.blink_fee_per_byte + 2*fees.blink_fee_per_output) | loki}} for a typical simple blink transaction (~2.5kB, 2 outputs)">
+                    <label>Blink fee:</label>
                     {{fees.blink_fee_per_output | loki}}/output + {{(fees.blink_fee_per_byte * 1000) | loki}}/kB
                 </span>
-                <span title="{{(info.block_size_limit / 2) | si}}B soft limit, {{info.block_size_limit | si}}B hard limit. Blocks may include TXes up to the soft limit without penalty and incur increasing reward penalties as they approach the hard limit.">|
-                    Block size limit:
+                <span title="{{(info.block_size_limit / 2) | si}}B soft limit, {{info.block_size_limit | si}}B hard limit. Blocks may include TXes up to the soft limit without penalty and incur increasing reward penalties as they approach the hard limit.">
+                    <label>Block size limit:</label>
                     {{(info.block_size_limit / 2) | si}}B/{{info.block_size_limit | si}}B
                 </span>
-                <span>| Blockchain size: {{info.database_size | si}}B</span>
+                <span><label>Blockchain size:</label> {{info.database_size | si}}B</span>
             </h3>
         {% endif %}
 
-        <h4 class="nowrap-spans">
-            <span><span style="font-weight: bold">Circulating Supply*</span>:
+        <h4 class="info_list nowrap-spans">
+            <span><label>Circulating Supply*:</label>:
                 {% if not emission or emission.status == 'BUSY' %}
                     (still calculating...)</span>
                 {% elif emission.status == 'OK' %}
                     {{(emission.emission_amount - emission.burn_amount) | loki}}</span>
-                    <span>(Coinbase: {{emission.emission_amount | loki}}</span>
-                    <span>| Fees: {{emission.fee_amount | loki}}</span>
-                    <span>| Burned: {{emission.burn_amount | loki}}).</span>
+                <span><label>(Coinbase:</label> {{emission.emission_amount | loki}}</span>
+                <span><label>Fees:</label> {{emission.fee_amount | loki}}</span>
+                <span><label>Burned:</label> {{emission.burn_amount | loki}}<label>).</label></span>
                 {%endif%}
             <p style="padding: 0px; margin-top: 2px; font-size: 0.9em">
             * — Circulating supply may exclude any currently, publicised locked tokens, otherwise it is equal to the Coinbase minus burned coins.
@@ -79,18 +92,18 @@
             </p>
         </h4>
 
+        <div class="TitleDivider"></div>
 
-        <h4 style="font-weight: bold; margin-bottom: 2px">TX Types Legend</h4>
-        <h4 class="tx-type-legend nowrap-spans" style="margin-top: 0">
-            <span>Service Node - Registration: 🏁</span>
-            <span>| Contribution: ⚑</span>
-            <span>| Recommission: 👍</span>
-            <span>| Decommission: 👎</span>
-            <span>| Deregister: 🚫</span>
-            <span>| IP Change Penalty: 📋</span>
-            <span>| Stake Unlock: 🔓</span>
-            <span>| Loki Name System Buy: 🎫</span>
-            <span>| LNS Update: 💾</span>
+        <h4 class="tx-type-legend info_list nowrap-spans" style="margin-top: 0">
+            <span><label>TX Type Legend:</label> 🏁 Service Node Registration</span>
+            <span>⚑ Contribution</span>
+            <span>👍 Recommission</span>
+            <span>👎 Decommission</span>
+            <span>🚫 Deregistration</span>
+            <span>📋 IP Change Penalty</span>
+            <span>🔓 Stake Unlock</span>
+            <span>🎫 Loki Name System Purchase</span>
+            <span>💾 LNS Update</span>
         </h4>
     </div>
 
@@ -115,7 +128,7 @@
             {{block_sizes[-1] | si}}B)
           </h4>
         {%endif%}
-        <div class="TitleDivider"></div>
+        <div class="TitleUnderliner"></div>
 
         {% include 'include/block_page_controls.html' %}
 

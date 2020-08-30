@@ -1,0 +1,15 @@
+{% extends "_basic.html" %}
+
+{% block content %}
+
+<div class="Wrapper">
+    <h1>Not Found!</h1>
+
+    {%if type == 'tx'%}
+        <h2>The transaction with id <code>{{id}}</code> was not found on the blockchain.</h2>
+    {%else%}
+        <h3>Whoops! Couldn't find what you were looking for.</h3>
+    {%endif%}
+</div>
+
+{% endblock %}

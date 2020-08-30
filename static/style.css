@@ -18,11 +18,35 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: 5px;
     margin-bottom: 3px;
 }
+.info_list>span:not(:first-child):before {
+    content: " | ";
+}
+.info_list>span {
+    font-weight: bold;
+}
+.info_list>span>label {
+    font-weight: normal;
+}
+p>label, span>label, h3>label, h4>label, td>label, .info-item>label {
+    color: #30a532;
+}
 .nowrap-spans {
     text-indent: -2em;
     padding-left: 2em;
 }
 .nowrap-spans>span {
+    white-space: nowrap;
+}
+.info-item:before {
+    content: " | ";
+    white-space: nowrap;
+}
+.info-item {
+    word-wrap: break-word;
+    padding-left: 6em;
+    text-indent: -4em;
+}
+.info-item>label {
     white-space: nowrap;
 }
 
@@ -92,11 +116,17 @@ table thead tr,
     background-color: #008522;
 }
 
-.TitleDivider {
+.TitleUnderliner {
     height: 2px;
     width: 100%;
     background-color: #008522;
     margin-bottom: 1em;
+}
+.TitleDivider {
+    height: 2px;
+    width: 100%;
+    background-color: #008522;
+    margin: 1em 0;
 }
 
 .LinkNoUnderline {
@@ -289,4 +319,19 @@ h3 .sn-count {
 
 span.icon {
     cursor: help;
+}
+
+.syntax-highlight>pre {
+    font-size: 125%;
+    overflow-x: auto;
+    tab-size: 4;
+    -o-tab-size: 4;
+    -moz-tab-size: 4;
+    border: 1px solid #008522;
+    padding: 10px;
+}
+
+.tx-inputs, .tx-outputs {
+    max-width: 1000px;
+    margin: auto;
 }
