@@ -27,8 +27,14 @@ h1, h2, h3, h4, h5, h6 {
 .info_list>span>label {
     font-weight: normal;
 }
+.info_list>span>label.omg {
+    font-weight: bold;
+}
 p>label, span>label, h3>label, h4>label, td>label, .info-item>label {
     color: #30a532;
+}
+label.warning {
+    color: red;
 }
 .nowrap-spans {
     text-indent: -2em;

@@ -6,6 +6,7 @@ import babel.dates
 import json
 import sys
 import statistics
+from base64 import b32encode, b16decode
 from werkzeug.routing import BaseConverter
 from pygments import highlight
 from pygments.lexers import JsonLexer
@@ -131,6 +132,14 @@ def format_loki(atomic, tag=True, fixed=False, decimals=9, zero=None):
 def bytes_to_hex(b):
     return "".join("{:02x}".format(x) for x in b)
 
+@app.template_filter('base32z')
+def base32z(hex):
+    return b32encode(b16decode(hex, casefold=True)).translate(
+            bytes.maketrans(
+                b'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',
+                b'ybndrfg8ejkmcpqxot1uwisza345h769')).decode().rstrip('=')
+
+
 @app.after_request
 def add_global_headers(response):
     if 'Cache-Control' not in response.headers:
@@ -171,10 +180,14 @@ def get_sns(sns_future, info_future):
             awaiting_sns.append(sn)
     return awaiting_sns, active_sns, inactive_sns
 
+@app.context_processor
 def template_globals():
     return {
         'config': conf,
-        'server': { 'datetime': datetime.utcnow() }
+        'server': {
+            'datetime': datetime.utcnow(),
+            'timestamp': datetime.utcnow().timestamp(),
+        },
     }
 
 
@@ -294,7 +307,6 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             custom_per_page=custom_per_page,
             mempool=mp,
             refresh=refresh,
-            **template_globals(),
             )
 
 @app.route('/service_nodes')
@@ -308,8 +320,41 @@ def sns():
         active_sns=active,
         awaiting_sns=awaiting,
         inactive_sns=inactive,
-        **template_globals(),
         )
+
+
+@app.route('/sn/<hex64:pubkey>')
+@app.route('/service_node/<hex64:pubkey>')  # For backwards compatibility with old explorer URLs
+def show_sn(pubkey):
+    lmq, lokid = lmq_connection()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
+    hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
+    sn = FutureJSON(lmq, lokid, 'rpc.get_service_nodes', 5, cache_key='single', args={
+        "service_node_pubkeys": [pubkey]}).get()
+
+    if 'service_node_states' not in sn or not sn['service_node_states']:
+        return flask.render_template('not_found.html',
+                info=info.get(),
+                hf=hfinfo.get(),
+                type='sn',
+                id=pubkey,
+                )
+
+    sn = sn['service_node_states'][0]
+    # These are a bit non-trivial to properly calculate:
+
+    # Number of staked contributions
+    sn['num_contributions'] = sum(len(x["locked_contributions"]) for x in sn["contributors"])
+    # Number of unfilled, reserved contribution spots:
+    sn['num_reserved_spots'] = sum(x["amount"] < x["reserved"] for x in sn["contributors"])
+    # Available open contribution spots:
+    sn['num_open_spots'] = 0 if sn['total_reserved'] >= sn['staking_requirement'] else max(0, 4 - sn['num_contributions'] - sn['num_reserved_spots'])
+
+    return flask.render_template('sn.html',
+            info=info.get(),
+            hf=hfinfo.get(),
+            sn=sn,
+            )
 
 
 @app.route('/tx/<hex64:txid>')
@@ -329,7 +374,6 @@ def show_tx(txid, more_details=False):
                 info=info.get(),
                 type='tx',
                 id=txid,
-                **template_globals(),
                 )
     tx = txs['txs'][0]
     if 'info' not in tx:
@@ -389,5 +433,4 @@ def show_tx(txid, more_details=False):
             koffset_info=koffset_info,
             block_info=block_info,
             **more_details,
-            **template_globals(),
             )

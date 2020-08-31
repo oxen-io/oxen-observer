@@ -1,0 +1,167 @@
+{% extends "_basic.html" %}
+
+{% block content %}
+
+{%-set portions_base = 2**64 - 4 %}
+{%-set solo_node = sn.portions_for_operator == portions_base %}
+{%-set decommed = sn.funded and not sn.active %}
+
+<div class="sn-details Wrapper">
+  <h2>Service Node Details</h2>
+  <div class="TitleUnderliner"></div>
+  <h4 style="margin:5px"><label>Service Node Public Key:</label> {{sn.service_node_pubkey}}</h4>
+  {%if sn.pubkey_ed25519 %}
+    {%if sn.pubkey_ed25519 != sn.service_node_pubkey%}
+      <h4 style="margin:5px"><label>Service Node Auxiliary Pubkey:</label> {{sn.pubkey_ed25519}}</h4>
+    {%endif%}
+    <h4 style="margin:5px"><label>Lokinet Address:</label> {{sn.pubkey_ed25519 | base32z}}.snode</h4>
+  {%endif%}
+  <h4 style="margin:5px"><label>Operator Address:</label> {{sn.operator_address}}</h4>
+
+  <h2>Metadata</h2>
+  <div class="TitleUnderliner"></div>
+  <h4 class="info_list nowrap-spans">
+
+    <span><label>Registration height:</label> <a href="/block/{{sn.registration_height}}">{{sn.registration_height}}</a>
+      {%if sn.registration_hf_version < hf.version%}
+        (hardfork v{{sn.registration_hf_version}})
+      {%endif%}
+    </span>
+
+    <span title="TX index: {{sn.last_reward_transaction_index}}">
+      {%if sn.funded%}
+        {%if sn.active%}
+          <label>Active since block:</label>
+        {%else%}{# decommissioned #}
+          <label>Decommissioned since block:</label>
+        {%endif%}
+      {%else%}
+        <label>Last contribution block:</label>
+      {%endif%}
+      <a href="/block/{{sn.state_height}}">{{sn.state_height}}</a>
+    </span>
+
+    <span><label>Staking requirement:</label> {{sn.staking_requirement | loki}}</span>
+
+    {%if not solo_node%}
+      <span><label>Operator fee:</label> {{(sn.portions_for_operator / portions_base * 100) | round(3) | chop0}}%</span>
+    {%endif%}
+
+    <span><label>Total contributed:</label>
+      {%if sn.total_contributed >= sn.staking_requirement%}100%
+      {%else%} 
+      {{sn.total_contributed | loki}} ({{(sn.total_contributed / sn.staking_requirement) * 100 | round(2) | chop0}}%)
+      {%endif%}
+    </span>
+
+    {%if sn.total_reserved != sn.total_contributed%}
+      <span><label>Total reserved:</label> {{sn.total_reserved | loki}}</span>
+    {%endif%}
+
+    <span>
+    <label>{%if decommed %}Remaining{%else%}Allowed{%endif%} downtime:</label>
+    {%if sn.earned_downtime_blocks > 0%}
+      {{ (sn.earned_downtime_blocks * 120) | reltime(in_ago=false) }} ({{sn.earned_downtime_blocks}} blocks)
+      {%if not decommed and sn.earned_downtime_blocks < 60%}
+        <span class="note">(Note: ≥ 60 blocks required)</span>
+      {%endif%}
+    {%else%}
+      None
+    {%endif%}
+    </span>
+
+    <span>
+      <label class="omg{%if server.timestamp - sn.last_uptime_proof > 3900%} warning{%endif%}">Last uptime proof:</label>
+      {%if sn.last_uptime_proof == 0%}
+        <span>Not received</span>
+      {%else%}
+        <span title="{{sn.last_uptime_proof|from_timestamp|format_datetime}}">{{sn.last_uptime_proof | from_timestamp | ago}} ago</span>
+      {%endif%}
+    </span>
+
+  </h4>
+
+  <h2>Service Node Status</h2>
+  <div class="TitleDivider"></div>
+  {%if sn.active %}
+    <p class="sn-active">Registered, staked, and active on the network since block {{sn.state_height}}.</p>
+  {%elif sn.funded%}
+    <p class="sn-decomm"><span class="omg">Decommissioned</span>: this service node is
+    registered and staked, but is currently <span class="omg">decommissioned</span> (since block
+    {{sn.state_height}}) for failing to meet service node requirements.
+    {%if sn.earned_downtime_blocks > 0%}
+      If it does not return to active duty within {{sn.earned_downtime_blocks}} blocks (about
+      {{(sn.earned_downtime_blocks * 120) | reltime(in_ago=false)}}) it will face <span class="omg">deregistration</span>.
+    {%else%}
+      The decommission time has expired; service node <span class="omg">deregistration</span> is imminent.
+    {%endif%}
+    </p>
+  {%else%}
+    <p class="sn-awaiting">Awaiting registration.  This service node has <span class="loki required">{{(sn.staking_requirement - total_contributed) | loki}}</span>
+    remaining to be contributed.
+    {%if sn.num_open_spots > 0%}
+      The minimum required stake contribution is <span class="loki required">{{((sn.staking_requirement - sn.total_reserved) / sn.num_open_spots) | loki}}</span>.
+    {%endif%}
+    </p>
+  {%endif%}
+
+  <p class="sn-expiration{%if sn.requested_unlock_height > 0%} unlocking{%endif%}">
+    {%if sn.requested_unlock_height > 0%}
+      This service node is scheduled to expire at block {{sn.requested_unlock_height}}, in approximately
+      {{(sn.requested_unlock_height - info.height + 1) * 120 | reltime(in_ago=false) }}
+      ({{(server.datetime + ((sn.requested_unlock_height - info.height + 1) * 120)|from_timestamp) | format_datetime('short')}} UTC, est.)
+    {%else%}
+      This service node is staking infinitely: no unlock has been initiated by any of its contributors.
+    {%endif%}
+  </p>
+
+  <h2>{{sn.contributors|length}} Contributor{%if sn.contributors|length > 1%}s{%endif%}</h2>
+    <div class="TitleDivider"></div>
+
+    <table style="width:100%">
+      <thead>
+        <tr>
+          <td>Contributor</td>
+          <td>Amount</td>
+          <td>Reserved</td>
+        </tr>
+      </thead>
+
+      <tbody>
+        {%for c in sn.contributors%}
+          <tr>
+            <td>{{c.address}}</td>
+            <td>{{c.amount | loki}}
+              {%-if c.locked_contributions and c.locked_contributions|length > 1%}
+                ({{c.locked_contributions|length}} contributions)
+              {%endif-%}
+            </td>
+            <td>{{c.reserved | loki}}</td>
+          </tr>
+        {%endfor%}
+      </tbody>
+    </table>
+
+    {#FIXME:#}
+    {%if pending_stakes and pending_stakes|length > 0%}
+      <h2>{{pending_stakes|length}} pending mempool contribution(s)</h2>
+      <div class="TitleDivider"></div>
+
+      <table class="pending-mempool-stakes">
+        <tr class="TableHeader">
+          <td>Contributor</td>
+          <td class="tx">TX</td>
+          <td>Amount</td>
+        </tr>
+
+        {%for s in pending_stakes%}
+          <tr>
+            <td>{{s.address}}</td>
+            <td class="tx"><a href="/tx/{{s.txid}}">{{s.txid}}</a></td>
+            <td>{{s.amount}}</td>
+          </tr>
+        {%endfor%}
+      </table>
+    {%endif%}
+</div>
+{%endblock%}
