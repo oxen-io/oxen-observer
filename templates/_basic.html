@@ -15,7 +15,7 @@
 <body>
 <div id="header" class="Wrapper">
     {% block header %}
-    <div>
+    <div id="header-content">
         <h1 class="Header"><a href="/">Loki
                 {%if info and info.testnet%}
                     <span style="color:#ff6b62">Testnet</span>
@@ -23,16 +23,12 @@
                     <span style="color:#af5bd2">Devnet</span>
                 {%endif%}
                 Blockchain Explorer</a></h1>
-        <form action="/search" method="get" style="width: 100%; margin-top:15px;" class="style-1">
-            <input type="text" name="value" size="120" placeholder="Block Height, Block Hash, Transaction Hash">
+        <form action="/search" method="get" class="top-search">
+            <input type="text" name="value" size="64" placeholder="Block height, Block hash, Transaction ID, or Service Node pubkey">
             <input type="submit" class="PageButton" value="Search">
         </form>
-        <form action="/search_service_node" method="get" style="width: 100%; margin-top:15px; margin-bottom: 1em;" class="style-1">
-            <input type="text" name="value" size="120" placeholder="Service Node Public Key">
-            <input type="submit" class="PageButton" value="Search">
-        </form>
-        <div class="TitleUnderliner" style="margin-bottom: 1em"></div>
     </div>
+    <div class="TitleUnderliner" style="margin-bottom: 1em"></div>
     {% endblock %}
 </div>
 

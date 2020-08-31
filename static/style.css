@@ -13,6 +13,32 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 0.2em;
 }
 
+#header>#header-content {
+    display: flex;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+#header h1 {
+    flex: 50%;
+    min-width: 500px;
+}
+#header form.top-search {
+    flex: 50%;
+    min-width: 500px;
+    display: flex;
+}
+#header form.top-search input[type="text"] {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+#header form.top-search input[type="submit"] {
+    flex: 0 0 12ex;
+    margin-right: 0;
+}
+
+
+
 .general_info {
     font-size: 12px;
     margin-top: 5px;
@@ -180,7 +206,7 @@ form {
     display: inline-block;
 }
 
-.style-1 input[type="text"] {
+.top-search input[type="text"] {
     padding: 2px;
     border: solid 1px rgba(255, 255, 255, 0.25);
     background-color: #1a1a1a;
@@ -190,8 +216,8 @@ form {
     color: white;
 }
 
-.style-1 input[type="text"]:focus,
-.style-1 input[type="text"].focus {
+.top-search input[type="text"]:focus,
+.top-search input[type="text"].focus {
     border: solid 1px #008522;
 }
 h1, h2, h3, h4, h5, h6 { color: white; }

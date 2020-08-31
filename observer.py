@@ -6,6 +6,7 @@ import babel.dates
 import json
 import sys
 import statistics
+import string
 from base64 import b32encode, b16decode
 from werkzeug.routing import BaseConverter
 from pygments import highlight
@@ -237,7 +238,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
         end_height = max(0, height - per_page*page - 1)
         start_height = max(0, end_height - per_page + 1)
 
-    blocks = FutureJSON(lmq, lokid, 'rpc.get_block_headers_range', args={
+    blocks = FutureJSON(lmq, lokid, 'rpc.get_block_headers_range', cache_key='main', args={
         'start_height': start_height,
         'end_height': end_height,
         'get_tx_hashes': True,
@@ -322,20 +323,41 @@ def sns():
         inactive_sns=inactive,
         )
 
+def tx_req(lmq, lokid, txid, **kwargs):
+    return FutureJSON(lmq, lokid, 'rpc.get_transactions', cache_seconds=10, cache_key='single',
+            args={
+                "txs_hashes": [txid],
+                "decode_as_json": True,
+                "tx_extra": True,
+                "prune": True,
+                },
+            **kwargs)
 
-@app.route('/sn/<hex64:pubkey>')
+def sn_req(lmq, lokid, pubkey, **kwargs):
+    return FutureJSON(lmq, lokid, 'rpc.get_service_nodes', 5, cache_key='single',
+            args={"service_node_pubkeys": [pubkey]}, **kwargs
+        )
+
+def block_req(lmq, lokid, hash_or_height, **kwargs):
+    if len(hash_or_height) <= 10 and hash_or_height.isdigit():
+        return FutureJSON(lmq, lokid, 'rpc.get_block_header_by_height', cache_key='single',
+                args={ "height": int(hash_or_height) }, **kwargs)
+    else:
+        return FutureJSON(lmq, lokid, 'rpc.get_block_header_by_hash', cache_key='single',
+                args={ "hash": hash_or_height }, **kwargs)
+
+
 @app.route('/service_node/<hex64:pubkey>')  # For backwards compatibility with old explorer URLs
+@app.route('/sn/<hex64:pubkey>')
 def show_sn(pubkey):
     lmq, lokid = lmq_connection()
     info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
     hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
-    sn = FutureJSON(lmq, lokid, 'rpc.get_service_nodes', 5, cache_key='single', args={
-        "service_node_pubkeys": [pubkey]}).get()
+    sn = sn_req(lmq, lokid, pubkey).get()
 
     if 'service_node_states' not in sn or not sn['service_node_states']:
         return flask.render_template('not_found.html',
                 info=info.get(),
-                hf=hfinfo.get(),
                 type='sn',
                 id=pubkey,
                 )
@@ -362,12 +384,7 @@ def show_sn(pubkey):
 def show_tx(txid, more_details=False):
     lmq, lokid = lmq_connection()
     info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    txs = FutureJSON(lmq, lokid, 'rpc.get_transactions', cache_seconds=10, args={
-        "txs_hashes": [txid],
-        "decode_as_json": True,
-        "tx_extra": True,
-        "prune": True,
-        }).get()
+    txs = tx_req(lmq, lokid, txid).get()
 
     if 'txs' not in txs or not txs['txs']:
         return flask.render_template('not_found.html',
@@ -434,3 +451,41 @@ def show_tx(txid, more_details=False):
             block_info=block_info,
             **more_details,
             )
+
+
+@app.route('/search')
+def search():
+    lmq, lokid = lmq_connection()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
+    val = flask.request.args.get('value')
+
+    if val and len(val) < 10 and val.isdigit(): # Block height
+        return show_block(val)
+    if not val or len(val) != 64 or any(c not in string.hexdigits for c in val):
+        return flask.render_template('not_found.html',
+                info=info.get(),
+                type='bad_search',
+                id=val,
+                )
+
+    # Initiate all the lookups at once, then redirect to whichever one responds affirmatively
+    snreq = sn_req(lmq, lokid, val)
+    blreq = block_req(lmq, lokid, val, fail_okay=True)
+    txreq = tx_req(lmq, lokid, val)
+
+    sn = snreq.get()
+    if 'service_node_states' in sn and sn['service_node_states']:
+        return flask.redirect(flask.url_for('show_sn', pubkey=val), code=301)
+    bl = blreq.get()
+    if bl and 'block_header' in bl and bl['block_header']:
+        return flask.redirect(flask.url_for('show_block', hash=val), code=301)
+    tx = txreq.get()
+    if tx and 'txs' in tx and tx['txs']:
+        return flask.redirect(flask.url_for('show_tx', txid=val), code=301)
+
+    return flask.render_template('not_found.html',
+            info=info.get(),
+            type='search',
+            id=val,
+            )
+

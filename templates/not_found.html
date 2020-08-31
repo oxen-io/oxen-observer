@@ -7,8 +7,16 @@
 
     {%if type == 'tx'%}
         <h2>The transaction with id <code>{{id}}</code> was not found on the blockchain.</h2>
+    {%elif type == 'sn'%}
+        <h2>The service node with pubkey <code>{{id}}</code> is not currently registered.</h2>
+    {%elif type == 'bad_search'%}
+      <h2>Invalid search request: <code>{{id}}</code></h2>
+      <h3>Please enter a block hash, height, transaction id, or service node public key.</h3>
+    {%elif type == 'search'%}
+      <h2>Not found: <code>{{id}}</code></h2>
+      <h3>Couldn't find a block, transaction, or service node matching your query.</h3>
     {%else%}
-        <h3>Whoops! Couldn't find what you were looking for.</h3>
+      <h3>Whoops! Couldn't find what you were looking for.</h3>
     {%endif%}
 </div>
 
