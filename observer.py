@@ -12,6 +12,7 @@ from werkzeug.routing import BaseConverter
 from pygments import highlight
 from pygments.lexers import JsonLexer
 from pygments.formatters import HtmlFormatter
+import subprocess
 
 import config
 from lmq import FutureJSON, lmq_connection
@@ -19,11 +20,13 @@ from lmq import FutureJSON, lmq_connection
 # Make a dict of config.* to pass to templating
 conf = {x: getattr(config, x) for x in dir(config) if not x.startswith('__')}
 
+git_rev = subprocess.run(["git", "rev-parse", "--short=9", "HEAD"], stdout=subprocess.PIPE, text=True)
+if git_rev.returncode == 0:
+    git_rev = git_rev.stdout.strip()
+else:
+    git_rev = "(unknown)"
+
 app = flask.Flask(__name__)
-if __name__ == '__main__':
-    # DEBUG:
-    app.config['TEMPLATES_AUTO_RELOAD'] = True
-    app.jinja_env.auto_reload = True
 
 class Hex64Converter(BaseConverter):
     def __init__(self, url_map):
@@ -169,7 +172,7 @@ def get_sns(sns_future, info_future):
     for sn in sn_states:
         sn['contribution_open'] = sn['staking_requirement'] - sn['total_reserved']
         sn['contribution_required'] = sn['staking_requirement'] - sn['total_contributed']
-        sn['num_contributions'] = sum(len(x['locked_contributions']) for x in sn['contributors'])
+        sn['num_contributions'] = sum(len(x['locked_contributions']) for x in sn['contributors'] if 'locked_contributions' in x)
 
         if sn['active']:
             active_sns.append(sn)
@@ -188,15 +191,16 @@ def template_globals():
         'server': {
             'datetime': datetime.utcnow(),
             'timestamp': datetime.utcnow().timestamp(),
+            'revision': git_rev,
         },
     }
 
 
-@app.route('/')
 @app.route('/page/<int:page>')
 @app.route('/page/<int:page>/<int:per_page>')
 @app.route('/range/<int:first>/<int:last>')
 @app.route('/autorefresh/<int:refresh>')
+@app.route('/')
 def main(refresh=None, page=0, per_page=None, first=None, last=None):
     lmq, lokid = lmq_connection()
     inforeq = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
@@ -275,10 +279,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             tx['info'] = json.loads(tx['as_json'])
             blocks[i]['txs'].append(tx)
 
-
-    #txes = FutureJSON(lmq, lokid, 'rpc.get_transactions');
-
-
+    
     # mempool RPC return values are about as nasty as can be.  For each mempool tx, we get back
     # *both* binary+hex encoded values and JSON-encoded values slammed into a string, which means we
     # have to invoke an *extra* JSON parser for each tx.  This is terrible.
@@ -457,7 +458,7 @@ def show_tx(txid, more_details=False):
 def search():
     lmq, lokid = lmq_connection()
     info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    val = flask.request.args.get('value')
+    val = flask.request.args.get('value').strip()
 
     if val and len(val) < 10 and val.isdigit(): # Block height
         return show_block(val)

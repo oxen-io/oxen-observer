@@ -38,7 +38,7 @@
         {%endfor%}
         {%if limit_awaiting and (awaiting_sns | length) > limit_awaiting%}
             <tr>
-                <td class="sn-more" colspan="7"><a href="/service_nodes#service-nodes-awaiting">+ {{(awaiting_sn | length) - limit_awaiting}} more ↪</a></td>
+                <td class="sn-more" colspan="7"><a href="/service_nodes#service-nodes-awaiting">+ {{(awaiting_sns | length) - limit_awaiting}} more ↪</a></td>
             </tr>
         {%endif%}
     </tbody>

@@ -36,12 +36,19 @@
     <div class="TitleUnderliner"></div>
 
     <h4 class="info_list nowrap-spans">
-        <span><label>In block:</label> <a href="/block/{{tx.block_height}}">{{tx.block_height}}</a></span>
+        {%if 'block_height' in tx%}
+          <span><label>In block:</label> <a href="/block/{{tx.block_height}}">{{tx.block_height}}</a></span>
+        {%else%}
+          <span title="Unix timestamp: {{tx.received_timestamp}}"><label>In mempool since:</label> {{tx.received_timestamp | from_timestamp | format_datetime('short')}} UTC
+          ({{tx.received_timestamp | from_timestamp | ago}} ago)</span>
+        {%endif%}
         {% import 'include/tx_type_symbol.html' as sym %}
         <span><label>TX Version/Type:</label> {{tx.info.version}}/{{sym.display(tx, text=true)}}</span>
         {%if not have_raw_tx%}
+          {%if 'block_timestamp' in tx%}
             <span title="Unix timestamp: {{tx.block_timestamp}}"><label>Timestamp:</label> {{tx.block_timestamp | from_timestamp | format_datetime('short')}} UTC
             ({{tx.block_timestamp | from_timestamp | ago}} ago)</span>
+          {%endif%}
         {%endif%}
 
         {# FIXME - if in mempool then link to mempool page instead #}
@@ -56,8 +63,8 @@
         </span>
         <span title="{{tx.size}} bytes"><label>TX Size:</label> {{tx.size|si}}B</span>
 
-        <span><label>No. Confirmations:</label> {{info.height - tx.block_height}}</span>
-    <span><label>RingCT/RingCT Type:</label> {%if tx.info.version >= 2 and not tx.coinbase%}Yes/{{tx.info.rct_signatures.type}}{%else%}No{%endif%}</span>
+        <span><label>No. Confirmations:</label> {%if 'block_height' in tx%}{{info.height - tx.block_height}}{%else%}None (in mempool){%endif%}</span>
+        <span><label>RingCT/RingCT Type:</label> {%if tx.info.version >= 2 and not tx.coinbase%}Yes/{{tx.info.rct_signatures.type}}{%else%}No{%endif%}</span>
 
         {%if tx.coinbase and tx.extra.sn_winner%}
           <span><label>Service Node Winner:</label>
@@ -136,7 +143,7 @@
             {%else%}{{(tx.extra.sn_registration.fee / 10000) | chop0}}%
             {%endif%}</p>
             <p><label>Expiration:</label> {{tx.extra.sn_registration.expiry | from_timestamp | format_datetime}} ({{tx.extra.sn_registration.expiry}}),
-            or {{(tx.extra.sn_registration.expiry|from_timestamp - server.timestamp) | reltime}}</p>
+            or {{(tx.extra.sn_registration.expiry|from_timestamp - server.datetime) | reltime}}</p>
 
             <h2>Service Node Registration Address(es)</h2>
             <div class="TitleDivider"></div>
@@ -186,7 +193,7 @@
                     <tr>
                         <td><label>{{loop.index0}}:</label> {{out.target.key}}</td>
                         <td>{{out.amount | loki(zero='?')}}</td>
-                        <td>{{tx.output_indices[loop.index0]}}{# FIXME: of {{num_outputs}}#}</td>
+                        <td>{%if 'output_indices' in tx%}{{tx.output_indices[loop.index0]}}{# FIXME: of {{num_outputs}}#}{%endif%}</td>
                     </tr>
                 {%endfor%}
             </tbody>
@@ -550,21 +557,23 @@
               </tr>
               {%for koffset in inp.key.key_offsets%}
                 {%set oinfo = koffset_info[inp.key.amount][koffset]%}
-                {%set binfo = block_info[oinfo.height]%}
-                <tr>
-                  <td><label>- {{loop.index0}}:</label> <a href="/tx/{{oinfo.txid}}">{{oinfo.key}}</a></td>
-                  {%if have_raw_tx%}
-                    {%if mix_is_it_real%}
-                      <td><span style="color: #008009;font-weight: bold">{{mix_is_it_real}}</span></td>
-                    {%else%}
-                      <td>{{mix_is_it_real}}</td>
+                {%if oinfo.height in binfo%}
+                  {%set binfo = block_info[oinfo.height]%}
+                  <tr>
+                    <td><label>- {{loop.index0}}:</label> <a href="/tx/{{oinfo.txid}}">{{oinfo.key}}</a></td>
+                    {%if have_raw_tx%}
+                      {%if mix_is_it_real%}
+                        <td><span style="color: #008009;font-weight: bold">{{mix_is_it_real}}</span></td>
+                      {%else%}
+                        <td>{{mix_is_it_real}}</td>
+                      {%endif%}
                     {%endif%}
-                  {%endif%}
-                  <td><a href="/block/{{binfo.height}}">{{binfo.height}}</a></td>
-                  <td>{{binfo.timestamp | from_timestamp | format_datetime('short')}}
-                    ({{(binfo.timestamp|from_timestamp - server.datetime) | reltime}})
-                  </td>
-                </tr>
+                    <td><a href="/block/{{binfo.height}}">{{binfo.height}}</a></td>
+                    <td>{{binfo.timestamp | from_timestamp | format_datetime('short')}}
+                      ({{(binfo.timestamp|from_timestamp - server.datetime) | reltime}})
+                    </td>
+                  </tr>
+                {%endif%}
               {%endfor%}
             {%endif%}
           {%endfor%}

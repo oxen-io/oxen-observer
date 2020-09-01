@@ -1,7 +1,8 @@
 
 # LMQ RPC endpoint of lokid; can be a unix socket 'ipc:///path/to/lokid.sock' (preferred) or a tcp
 # socket 'tcp://127.0.0.1:5678'.  Typically you want this running with admin permission.
-lokid_rpc = 'ipc://./devnet.sock'
+# This is actually set for each observer in the ...net.py script.
+lokid_rpc = None
 
 # Default blocks per page for the index.
 blocks_per_page=20
