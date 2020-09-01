@@ -187,7 +187,10 @@
 
     {%include 'include/service_nodes_lists.html'%}
 
-    {{quorum_state_summary}}
+    {%if checkpoints and checkpoints.checkpoints|length > 0%}
+      {%include 'include/checkpoints.html'%}
+    {%endif%}
+
     <div class="Wrapper">
       <p> Note: The quorum shown here is the currently active voting height
       which is not necessarily the latest quorum. Quorums can only be voted on

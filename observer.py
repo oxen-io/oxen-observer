@@ -209,6 +209,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
     hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
     mempool = FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5, args={"tx_extra":True})
     sns = get_sns_future(lmq, lokid)
+    checkpoints = FutureJSON(lmq, lokid, 'rpc.get_checkpoints', args={"count": 3})
 
     # This call is slow the first time it gets called in lokid but will be fast after that, so call
     # it with a very short timeout.  It's also an admin-only command, so will always fail if we're
@@ -308,6 +309,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             per_page=per_page,
             custom_per_page=custom_per_page,
             mempool=mp,
+            checkpoints=checkpoints.get(),
             refresh=refresh,
             )
 

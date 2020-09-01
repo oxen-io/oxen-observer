@@ -1,0 +1,38 @@
+<div class="Wrapper">
+  <h2 style="margin-bottom: 0px">Last {{checkpoints.checkpoints | length}} checkpoints</h2>
+
+  <div class="TitleDivider"></div>
+
+  <table style="width:100%">
+    <thead>
+      <tr class="TableHeader">
+        <td>Height</td>
+        <td>Block hash</td>
+        <td>Checkpoint Quorum</td>
+      </tr>
+    </thead>
+
+    <tbody>
+      {%for cp in checkpoints.checkpoints%}
+        <tr>
+          <td><a href="/block/{{cp.height}}">{{cp.height}}</a></td>
+          <td><a href="/block/{{cp.block_hash}}">{{cp.block_hash}}</a></td>
+          <td>
+            <a href="/checkpoint_quorum/{{cp.height}}">{{cp.signatures|length}}/20 signatures</a>:
+            {% set sigs = namespace(next=0) %}
+            {%for sig in cp.signatures%}
+              {%for missing in range(sigs.next, loop.index0)%}
+                <span title="Missing signature from checkpoint quorum voter {{missing}}" class="checkpoint-not-signed">✕</span>
+              {%endfor%}
+              <span title="Signed by checkpoint quorum voter {{loop.index0}}" class="checkpoint-signed">✓</span>
+              {%set sigs.next = loop.index0 + 1%}
+              {%endfor%}
+              {%for missing in range(sigs.next, 20)%}
+                <span title="Missing signature from checkpoint quorum voter {{missing}}" class="checkpoint-not-signed">✕</span>
+              {%endfor%}
+            {%endfor%}
+          </td>
+        </tr>
+    </tbody>
+  </table>
+</div>
