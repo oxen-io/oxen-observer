@@ -412,7 +412,17 @@ def show_tx(txid, more_details=False):
             # Load output details for all outputs contained in the inputs
             outs_req = []
             for inp in tx['info']['vin']:
-                inp['key']['key_indices'] = [sum(inp['key']['key_offsets'][0:(x+1)]) for x in range(len(inp['key']['key_offsets']))]
+                # Key positions are stored as offsets from the previous index rather than indices,
+                # so de-delta them back into indices:
+                if 'key_offsets' in inp['key'] and 'key_indices' not in inp['key']:
+                    kis = []
+                    inp['key']['key_indices'] = kis
+                    kbase = 0
+                    for koff in inp['key']['key_offsets']:
+                        kbase += koff
+                        kis.append(kbase)
+                    del inp['key']['key_offsets']
+
             outs_req = [{"amount":inp['key']['amount'], "index":ki} for inp in tx['info']['vin'] for ki in inp['key']['key_indices']]
             outputs = FutureJSON(lmq, lokid, 'rpc.get_outs', args={
                 'get_txid': True,
