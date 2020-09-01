@@ -531,7 +531,7 @@
       <div class="tx-inputs">
         <table class="Table">
           {%for inp in tx.info.vin if 'key' in inp%}
-            <tr>
+            <tr class="tx-input-key-image">
               <td style="text-align: left;" colspan="2">
                 <label>Key Image {{loop.index0}}:</label> {{inp.key.k_image}}
                 {#FIXME:#}
@@ -555,9 +555,8 @@
                 <td>Block</td>
                 <td>Timestamp (UTC)</td>
               </tr>
-              {%for koffset in inp.key.key_offsets%}
-                {%set oinfo = koffset_info[inp.key.amount][koffset]%}
-                {%if oinfo.height in binfo%}
+              {%for kindex in inp.key.key_indices%}
+                {%set oinfo = kindex_info[inp.key.amount][kindex]%}
                   {%set binfo = block_info[oinfo.height]%}
                   <tr>
                     <td><label>- {{loop.index0}}:</label> <a href="/tx/{{oinfo.txid}}">{{oinfo.key}}</a></td>
@@ -573,7 +572,6 @@
                       ({{(binfo.timestamp|from_timestamp - server.datetime) | reltime}})
                     </td>
                   </tr>
-                {%endif%}
               {%endfor%}
             {%endif%}
           {%endfor%}
@@ -589,7 +587,7 @@
       {{details_html | safe}}
     {%else%}
       <h5>
-        <a href="/tx/{{tx.tx_hash}}/1">Show raw details</a>
+        <a href="/tx/{{tx.tx_hash}}/1#more_details">Show raw details</a>
       </h5>
     {%endif%}
 

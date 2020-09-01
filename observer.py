@@ -403,14 +403,17 @@ def show_tx(txid, more_details=False):
         # The "extra" field is retardedly in per-byte values, convert it to a hex string:
         tx['info']['extra'] = bytes_to_hex(tx['info']['extra'])
 
-    koffset_info = {} # { amount => { keyoffset => {output-info} } }
+    kindex_info = {} # { amount => { keyindex => {output-info} } }
     block_info_req = None
     if 'vin' in tx['info']:
         if len(tx['info']['vin']) == 1 and 'gen' in tx['info']['vin'][0]:
             tx['coinbase'] = True
         elif tx['info']['vin'] and config.enable_mixins_details:
             # Load output details for all outputs contained in the inputs
-            outs_req = [{"amount":inp['key']['amount'], "index":koff} for inp in tx['info']['vin'] for koff in inp['key']['key_offsets']]
+            outs_req = []
+            for inp in tx['info']['vin']:
+                inp['key']['key_indices'] = [sum(inp['key']['key_offsets'][0:(x+1)]) for x in range(len(inp['key']['key_offsets']))]
+            outs_req = [{"amount":inp['key']['amount'], "index":ki} for inp in tx['info']['vin'] for ki in inp['key']['key_indices']]
             outputs = FutureJSON(lmq, lokid, 'rpc.get_outs', args={
                 'get_txid': True,
                 'outputs': outs_req,
@@ -424,10 +427,10 @@ def show_tx(txid, more_details=False):
                 i = 0
                 for inp in tx['info']['vin']:
                     amount = inp['key']['amount']
-                    if amount not in koffset_info:
-                        koffset_info[amount] = {}
-                    ki = koffset_info[amount]
-                    for ko in inp['key']['key_offsets']:
+                    if amount not in kindex_info:
+                        kindex_info[amount] = {}
+                    ki = kindex_info[amount]
+                    for ko in inp['key']['key_indices']:
                         ki[ko] = outputs[i]
                         i += 1
 
@@ -450,7 +453,7 @@ def show_tx(txid, more_details=False):
     return flask.render_template('tx.html',
             info=info.get(),
             tx=tx,
-            koffset_info=koffset_info,
+            kindex_info=kindex_info,
             block_info=block_info,
             **more_details,
             )

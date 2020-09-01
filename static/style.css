@@ -367,3 +367,6 @@ span.icon {
     max-width: 1000px;
     margin: auto;
 }
+tr.tx-input-key-image>td {
+    padding-top: 1.5em;
+}
