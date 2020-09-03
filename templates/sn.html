@@ -50,7 +50,7 @@
     <span><label>Total contributed:</label>
       {%if sn.total_contributed >= sn.staking_requirement%}100%
       {%else%} 
-      {{sn.total_contributed | loki}} ({{(sn.total_contributed / sn.staking_requirement) * 100 | round(2) | chop0}}%)
+      {{sn.total_contributed | loki}} ({{(sn.total_contributed / sn.staking_requirement * 100) | round(2) | chop0}}%)
       {%endif%}
     </span>
 
@@ -97,7 +97,7 @@
     {%endif%}
     </p>
   {%else%}
-    <p class="sn-awaiting">Awaiting registration.  This service node has <span class="loki required">{{(sn.staking_requirement - total_contributed) | loki}}</span>
+    <p class="sn-awaiting">Awaiting registration.  This service node has <span class="loki required">{{(sn.staking_requirement - sn.total_contributed) | loki}}</span>
     remaining to be contributed.
     {%if sn.num_open_spots > 0%}
       The minimum required stake contribution is <span class="loki required">{{((sn.staking_requirement - sn.total_reserved) / sn.num_open_spots) | loki}}</span>.
@@ -107,9 +107,9 @@
 
   <p class="sn-expiration{%if sn.requested_unlock_height > 0%} unlocking{%endif%}">
     {%if sn.requested_unlock_height > 0%}
-      This service node is scheduled to expire at block {{sn.requested_unlock_height}}, in approximately
-      {{(sn.requested_unlock_height - info.height + 1) * 120 | reltime(in_ago=false) }}
-      ({{(server.datetime + ((sn.requested_unlock_height - info.height + 1) * 120)|from_timestamp) | format_datetime('short')}} UTC, est.)
+      This service node is <span class="omg">scheduled to expire at block {{sn.requested_unlock_height}}</span>, in approximately
+      {{((sn.requested_unlock_height - info.height + 1) * 120) | reltime(in_ago=false) }}
+      ({{(server.timestamp + (sn.requested_unlock_height - info.height + 1) * 120) | from_timestamp | format_datetime('short')}} UTC, est.)
     {%else%}
       This service node is staking infinitely: no unlock has been initiated by any of its contributors.
     {%endif%}

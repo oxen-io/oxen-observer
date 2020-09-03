@@ -163,7 +163,7 @@ def get_sns_future(lmq, lokid):
                     'last_reward_transaction_index', 'active', 'funded', 'earned_downtime_blocks',
                     'service_node_version', 'contributors', 'total_contributed', 'total_reserved',
                     'staking_requirement', 'portions_for_operator', 'operator_address', 'pubkey_ed25519',
-                    'last_uptime_proof', 'service_node_version') } })
+                    'last_uptime_proof', 'service_node_version', 'state_height') } })
 
 def get_sns(sns_future, info_future):
     info = info_future.get()
@@ -369,7 +369,7 @@ def show_sn(pubkey):
     # These are a bit non-trivial to properly calculate:
 
     # Number of staked contributions
-    sn['num_contributions'] = sum(len(x["locked_contributions"]) for x in sn["contributors"])
+    sn['num_contributions'] = sum(len(x["locked_contributions"]) for x in sn["contributors"] if "locked_contributions" in x)
     # Number of unfilled, reserved contribution spots:
     sn['num_reserved_spots'] = sum(x["amount"] < x["reserved"] for x in sn["contributors"])
     # Available open contribution spots:

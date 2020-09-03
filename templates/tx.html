@@ -137,7 +137,7 @@
         {% elif 'sn_registration' in tx.extra %}
             <h2>🏁 Service Node Register Metadata</h2>
             <div class="TitleDivider"></div>
-            <p><label>Service Node Public Key:</label> {{tx.extra.sn_pubkey}}</p>
+            <p><label>Service Node Public Key:</label> <a href="/sn/{{tx.extra.sn_pubkey}}">{{tx.extra.sn_pubkey}}</a></p>
             <p><label>Operator fee:</label>
             {%if tx.extra.sn_registration.fee == 1000000%}N/A (solo registration)
             {%else%}{{(tx.extra.sn_registration.fee / 10000) | chop0}}%
