@@ -168,7 +168,8 @@ def get_sns_future(lmq, lokid):
 def get_sns(sns_future, info_future):
     info = info_future.get()
     awaiting_sns, active_sns, inactive_sns = [], [], []
-    sn_states = sns_future.get()['service_node_states']
+    sn_states = sns_future.get()
+    sn_states = sn_states['service_node_states'] if 'service_node_states' in sn_states else []
     for sn in sn_states:
         sn['contribution_open'] = sn['staking_requirement'] - sn['total_reserved']
         sn['contribution_required'] = sn['staking_requirement'] - sn['total_contributed']
