@@ -158,7 +158,7 @@
                 <td><a href="/tx/{{b.miner_tx_hash}}">{{b.miner_tx_hash}}</a></td>
                 <td>{{fee.display(b.txs[0])}}</td>
                 <td>{{b.reward | loki(tag=False, fixed=True, decimals=2)}}</td>
-                <td>{{b.txs[0].info.vin | length}}/{{b.txs[0].info.vout | length}}</td>
+                <td>0/{{b.txs[0].info.vout | length}}</td>
                 <td>{{b.txs[0].size | si}}</td>
               </tr>
               {% for tx in b.txs[1:] %}
