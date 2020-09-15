@@ -53,7 +53,7 @@
 
         {# FIXME - if in mempool then link to mempool page instead #}
         <span><label>Fee (Per kB):</label>
-            {%if tx.coinbase%}
+            {%if tx.coinbase or 'rct_signatures' not in tx.info%}
                 N/A
             {%else%}
                 {% import 'include/tx_fee.html' as fee %}
@@ -64,7 +64,7 @@
         <span title="{{tx.size}} bytes"><label>TX Size:</label> {{tx.size|si}}B</span>
 
         <span><label>No. Confirmations:</label> {%if 'block_height' in tx%}{{info.height - tx.block_height}}{%else%}None (in mempool){%endif%}</span>
-        <span><label>RingCT/RingCT Type:</label> {%if tx.info.version >= 2 and not tx.coinbase%}Yes/{{tx.info.rct_signatures.type}}{%else%}No{%endif%}</span>
+        <span><label>RingCT/RingCT Type:</label> {%if tx.info.version >= 2 and 'rct_signatures' in tx.info and not tx.coinbase%}Yes/{{tx.info.rct_signatures.type}}{%else%}No{%endif%}</span>
 
         {%if tx.coinbase and tx.extra.sn_winner%}
           <span><label>Service Node Winner:</label>
@@ -556,7 +556,8 @@
                 <td>Timestamp (UTC)</td>
               </tr>
               {%for kindex in inp.key.key_indices%}
-                {%set oinfo = kindex_info[inp.key.amount][kindex]%}
+                {%if inp.key.amount in kindex_info and kindex in kindex_info[inp.key.amount]%}
+                  {%set oinfo = kindex_info[inp.key.amount][kindex]%}
                   {%set binfo = block_info[oinfo.height]%}
                   <tr>
                     <td><label>- {{loop.index0}}:</label> <a href="/tx/{{oinfo.txid}}">{{oinfo.key}}</a></td>
@@ -572,6 +573,15 @@
                       ({{(binfo.timestamp|from_timestamp - server.datetime) | reltime}})
                     </td>
                   </tr>
+                {%else%}
+                  <tr>
+                    <td title="This transaction references outputs that do not exist on the blockchain, possibly as a result of a reorganization">
+                      <label>- {{loop.index0}}:</label> Unknown output ({%if inp.key.amount != 0%}amount {{inp.key.amount}}, {%endif%}index {{kindex}})
+                    </td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                {%endif%}
               {%endfor%}
             {%endif%}
           {%endfor%}

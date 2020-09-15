@@ -28,8 +28,13 @@
                 <td title="{{tx.receive_time | from_timestamp | format_datetime}}">{{tx.receive_time | from_timestamp | ago}}</td>
                 <td>{{symbol.display(tx)}}</td>
                 <td><a href="/tx/{{tx.id_hash}}">{{tx.id_hash}}</a></td>
-                <td>{{fee.display(tx)}} /
-                    {{(tx.info.rct_signatures.txnFee * 1000 / tx.blob_size) | loki(tag=false, decimals=4)}}</td>
+                <td>
+                    {%if 'rct_signatures' in tx.info%}
+                        {{fee.display(tx)}} / {{(tx.info.rct_signatures.txnFee * 1000 / tx.blob_size) | loki(tag=false, decimals=4)}}
+                    {%else%}
+                        N/A
+                    {%endif%}
+                </td>
                 <td>{{tx.info.vin | length}}/{{tx.info.vout | length}}</td>
                 <td>{{tx.blob_size | si}}B</td>
             </tr>
@@ -39,7 +44,7 @@
 
     {% if mempool.transactions|length > mempool_limit %}
         <div class="center" style="text-align: center; margin-bottom: 10px">
-            <a href="/txpool">Only {{mempool_limit}}/{{len(mempool.transactions)}} transactions shown. Click here to see all of them</a>
+            <a href="/txpool">Only {{mempool_limit}}/{{mempool.transactions | length}} transactions shown. Click here to see all of them</a>
         </div>
     {% endif %}
 
