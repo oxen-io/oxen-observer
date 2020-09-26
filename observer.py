@@ -535,7 +535,7 @@ def show_tx(txid, more_details=False):
 def search():
     lmq, lokid = lmq_connection()
     info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    val = flask.request.args.get('value').strip()
+    val = (flask.request.args.get('value') or '').strip()
 
     if val and len(val) < 10 and val.isdigit(): # Block height
         return show_block(val)
