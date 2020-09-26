@@ -1,0 +1,100 @@
+{% extends "_basic.html" %}
+
+{% block content %}
+  <div class="Wrapper">
+    <h4>Block Hash (height): {{block_header.hash}} ({{block_header.height}})</h4>
+
+
+    {% if block_header.prev_hash %}
+      <p>Previous Block: <a href="/block/{{block_header.prev_hash}}">{{block_header.prev_hash}}</a></p>
+    {% endif %}
+
+    {% if next_block %}
+      <p>Next Block: <a href="/block/{{next_block.block_header.hash}}">{{next_block.block_header.hash}}</a></p>
+    {% endif %}
+
+    <h2>Metadata</h2>
+    <div class="TitleDivider"></div>
+    <table class="Table">
+        <tr>
+            <td>Timestamp [UCT] (epoch):</td><td>{{block_header.timestamp | from_timestamp | format_datetime}} ({{block_header.timestamp}})</td>
+            <!-- <td>Age:</td><td></td> -->
+            <td>Age [h:m:s]:</td><td>{{ block_header.timestamp | from_timestamp | ago }}</td>
+        </tr>
+        <tr>
+            <td>Major.Minor Version:</td><td>{{block_header.major_version}}.{{block_header.minor_version}}</td>
+            <td>Block Reward:</td><td>{{block_header.reward | loki }}</td>
+            <td>Block Size [kB]:</td><td>{{block_header.block_size | si}}</td>
+        </tr>
+        <tr>
+            <td>Nonce:</td><td>{{block_header.nonce}}</td>
+            <td>Total Fees:</td><td>{{sum_fees}}</td>
+        </tr>
+        <tr>
+            <td>Service Node Winner:</td><td><a href="/service_node/{{block_header.service_node_winner}}">{{block_header.service_node_winner}}</a></td>
+            <td>Cumulative Difficulty:</td><td>{{block_header.cumulative_difficulty}}</td>
+            <td></td>
+        </tr>
+    </table>
+
+    <h2>Miner Reward Transaction</h3>
+<div class="TitleDivider"></div>
+    <table class="Table">
+        <tr class="TableHeader">
+            <td>Hash</td>
+            <td>Outputs</td>
+            <td>Size [kB]</td>
+            <td>Version</td>
+        </tr>
+        {% for tx in miner_tx %}
+            <tr>
+                <td><a href="/tx/{{tx.hash}}">{{tx.hash}}</a>
+                <td>{{tx.sum_outputs}}</td>
+                <td>{{tx.tx_size}}</td>
+                <td>{{tx.version}}</td>
+            </tr>
+        {% endfor %}
+    </table>
+
+
+    <h2>Transactions ({{transactions | length}})</h2>
+    <div class="TitleDivider"></div>
+    {% if not transactions.empty %}
+        <table class="Table">
+          <thead>
+            <tr>
+                <td>Type</td>
+                <td>Transaction Hash</td>
+                <td>Fee</td>
+                <td>Outputs</td>
+                <td>In/Out</td>
+                <td>TX Size</td>
+            </tr>
+          </thead>
+          <tbody>
+            {% import 'include/tx_type_symbol.html' as symbol %}
+            {% import 'include/tx_fee.html' as fee %}
+              {% for tx in transactions %}
+                <tr class="tx">
+                  <td>{{symbol.display(tx, text=True)}}</td>
+                  <td><a href="/tx/{{tx.tx_hash}}">{{tx.tx_hash}}</a></td>
+                  <td>{{fee.display(tx)}}</td>
+                  <td></td>
+                  <td>{{tx.info.vin | length}}/{{tx.info.vout | length}}</td>
+                  <td>{{tx.size | si}}</td>
+                </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    {% endif %}
+
+
+    {% if enable_as_hex %}
+        <h5 style="margin-top:1px">
+            <a href="/blockhex/{{blk_height}}">Block As Hex</a>
+            | <a href="/blockhexcomplete/{{blk_height}}">Complete Block As Hex</a>
+        </h5>
+    {% endif %}
+</div>
+
+{% endblock %}

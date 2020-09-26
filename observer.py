@@ -348,8 +348,16 @@ def block_req(lmq, lokid, hash_or_height, **kwargs):
                 args={ "height": int(hash_or_height) }, **kwargs)
     else:
         return FutureJSON(lmq, lokid, 'rpc.get_block_header_by_hash', cache_key='single',
-                args={ "hash": hash_or_height }, **kwargs)
+                args={ 'hash': hash_or_height }, **kwargs)
 
+def get_block_with_txs(lmq, lokid, hash_or_height, **kwargs):
+    if len(hash_or_height) <= 10 and hash_or_height.isdigit():
+        return FutureJSON(lmq, lokid, 'rpc.get_block', cache_key='single',
+                args={ "height": int(hash_or_height), 'get_tx_hashes': True }, **kwargs)
+    else:
+        return FutureJSON(lmq, lokid, 'rpc.get_block', cache_key='single',
+                args={ 'hash': hash_or_height, 'get_tx_hashes': True }, **kwargs)
+    
 
 @app.route('/service_node/<hex64:pubkey>')  # For backwards compatibility with old explorer URLs
 @app.route('/sn/<hex64:pubkey>')
@@ -382,6 +390,54 @@ def show_sn(pubkey):
             sn=sn,
             )
 
+
+@app.route("/block/<val>")
+def show_block(val):
+    """ """
+    lmq, lokid = lmq_connection()
+    block = get_block_with_txs(lmq, lokid, val).get()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1).get()
+    hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
+    if block is None:
+        return flask.render_template("not_found.html",
+                                     info=info,
+                                     hfinfo=hfinfo.get(),
+                                     type='block')
+    else:
+        next_block = None
+        block_height = block['block_header']['height']
+        transactions = []
+        miner_txs = []
+        if block and 'tx_hashes' in block:
+            hashes = block['tx_hashes']
+            if 'info' not in block:
+                try:
+                    block['info'] = json.loads(block["json"])
+                    del block["json"]
+                except:
+                    pass
+            if 'info' in block:
+                hashes += block['info']['miner_tx']
+            txs = FutureJSON(lmq, lokid, 'rpc.get_transactions', args={
+                "txs_hashes": hashes,
+                "decode_as_json": True
+            }).get()
+            for tx in txs['txs']:
+                if 'info' not in tx:
+                    tx['info'] = json.loads(tx["as_json"])
+                    del tx["as_json"]
+                transactions.append(tx)
+        if info['height'] > 1 + block_height:
+            next_block = block_req(lmq, lokid, '{}'.format(block_height + 1)).get()
+        return flask.render_template("block.html",
+                                     info=info,
+                                     hfinfo=hfinfo.get(),
+                                     block_header=block['block_header'],
+                                     block=block,
+                                     transactions=transactions,
+                                     next_block=next_block)
+ 
+    
 
 @app.route('/tx/<hex64:txid>')
 @app.route('/tx/<hex64:txid>/<int:more_details>')
