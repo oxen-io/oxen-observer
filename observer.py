@@ -420,12 +420,17 @@ def show_block(val):
                 hashes += block['info']['miner_tx']
             txs = FutureJSON(lmq, lokid, 'rpc.get_transactions', args={
                 "txs_hashes": hashes,
-                "decode_as_json": True
+                "tx_extra": True,
+                "decode_as_json": True,
+                "prune": True
             }).get()
-            for tx in txs['txs']:
-                if 'info' not in tx:
-                    tx['info'] = json.loads(tx["as_json"])
-                    del tx["as_json"]
+            if 'txs' in txs:
+                for tx in txs['txs']:
+                    if 'info' not in tx:
+                        tx['info'] = json.loads(tx["as_json"])
+                        del tx["as_json"]
+                        if 'extra' in tx['info']:
+                            tx['info']['extra'] = bytes_to_hex(tx['info']['extra'])
                 transactions.append(tx)
         if info['height'] > 1 + block_height:
             next_block = block_req(lmq, lokid, '{}'.format(block_height + 1)).get()
