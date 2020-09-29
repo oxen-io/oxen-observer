@@ -353,6 +353,10 @@ span.icon {
     cursor: help;
 }
 
+.comment {
+    font-style: italic;
+}
+
 .syntax-highlight>pre {
     font-size: 125%;
     overflow-x: auto;

@@ -2,43 +2,89 @@
 
 {% block content %}
   <div class="Wrapper">
-    <h4>Block Hash (height): {{block_header.hash}} ({{block_header.height}})</h4>
+      <h4 style="margin:5px"><label>Block Hash:</label> {{block_header.hash}}</h4>
+      <h4 style="margin:5px"><label>Block Height:</label> {{block_header.height}}
+          {%if block_header.height < info.height - 1%}
+              <span class="comment">({{info.height - 1 - block_header.height}} blocks ago)</span>
+          {%elif block_header.height == info.height - 1%}
+              <span class="comment">(current top block)</span>
+          {%endif%}
+      </h4>
+      <h4 style="margin:5px" class="prev_next_block">
+          {%if block_header.height > 0%}
+              <a href="/block/{{block_header.height-1}}{%if details_html%}/1{%endif%}">« Block {{block_header.height-1}} <span class="comment">({{block_header.prev_hash | ellipsize(8,3)}})</span></a>
+          {%endif%}
+          {%if block_header.height < info.height - 1%}
+              {%if block_header.height > 0%} | {%endif%}
+              <a href="/block/{{block_header.height+1}}{%if details_html%}/1{%endif%}">Block {{block_header.height-1}} <span class="comment">({{block_header.prev_hash | ellipsize(10,3)}})</span> »</a>
+              |
+              <a href="/block/latest">Latest block ⏭</a>
+          {%endif%}
+      </h4>
 
-
-    {% if block_header.prev_hash %}
-      <p>Previous Block: <a href="/block/{{block_header.prev_hash}}">{{block_header.prev_hash}}</a></p>
-    {% endif %}
-
-    {% if next_block %}
-      <p>Next Block: <a href="/block/{{next_block.block_header.hash}}">{{next_block.block_header.hash}}</a></p>
-    {% endif %}
 
     <h2>Metadata</h2>
-    <div class="TitleDivider"></div>
-    <table class="Table">
-        <tr>
-            <td>Timestamp [UCT] (epoch):</td><td>{{block_header.timestamp | from_timestamp | format_datetime}} ({{block_header.timestamp}})</td>
-            <!-- <td>Age:</td><td></td> -->
-            <td>Age [h:m:s]:</td><td>{{ block_header.timestamp | from_timestamp | ago }}</td>
-        </tr>
-        <tr>
-            <td>Major.Minor Version:</td><td>{{block_header.major_version}}.{{block_header.minor_version}}</td>
-            <td>Block Reward:</td><td>{{block_header.reward | loki }}</td>
-            <td>Block Size [kB]:</td><td>{{block_header.block_size | si}}</td>
-        </tr>
-        <tr>
-            <td>Nonce:</td><td>{{block_header.nonce}}</td>
-            <td>Total Fees:</td><td>{{sum_fees}}</td>
-        </tr>
-        <tr>
-            <td>Service Node Winner:</td><td><a href="/service_node/{{block_header.service_node_winner}}">{{block_header.service_node_winner}}</a></td>
-            <td>Cumulative Difficulty:</td><td>{{block_header.cumulative_difficulty}}</td>
-            <td></td>
-        </tr>
-    </table>
+    <div class="TitleUnderliner"></div>
 
-    <h2>Miner Reward Transaction</h3>
-<div class="TitleDivider"></div>
+    <h4 class="info_list nowrap-spans">
+        <span title="Unix timestamp: {{block_header.timestamp}}"><label>Timestamp:</label> {{block_header.timestamp | from_timestamp | format_datetime('short')}} UTC
+            ({{block_header.timestamp | from_timestamp | ago}} ago)</span>
+
+        <span><label>Major.minor version:</label> {{block_header.major_version}}.{{block_header.minor_version}}</span>
+
+        <span><label>Block size:</label> {{block_header.block_size | si}}B</span>
+
+        {%if 'nonce' in block_header and block_header['nonce'] != 0%}
+            <span title="Random value added by a miner to achieve sufficient block difficulty"><label>Miner nonce:</label> {{block_header.nonce}}</span>
+            <span title="~ {{(block_header.difficulty / 120) | si }}H/s network hashrate
+
+Cumulative difficulty {{block_header.cumulative_difficulty}}"><label>Difficulty:</label> {{block_header.difficulty}}</span>
+        {%elif 'pulse' in block_header.info%}
+            {%if block_header.info.pulse.round > 0%}
+                <span title="When &gt; 0 this indicates how many Service Node rounds failed to produce a valid, signed Pulse block in time">
+                    <title>Pulse round:</title> {{block_header.info.pulse.round}}
+                </span>
+            {%endif%}
+            <span title="Random value produced by the Pulse round that provide entropy for the blockchain
+
+Pulse participation bits: {{":011b".format(block_header.info.pulse.validator_bitset)}}">
+                <label>Pulse random value:</label>
+                {{block_header.info.pulse.random_value}}
+            </span>
+        {%endif%}
+
+        {%set sum_burned = transactions | selectattr('extra.burn_amount') | sum(attribute='extra.burn_amount') %}
+        {%set sum_fees = transactions | selectattr('info.rct_signatures') | selectattr('info.rct_signatures.txnFee') | sum(attribute='info.rct_signatures.txnFee') - sum_burned%}
+
+        <span title="{{(block_header.reward - sum_fees) | loki(fixed=True)}} created in this block.{%if sum_fees > 0%}
+
+Note that this value does not include earned transaction fees ({{sum_fees | loki(fixed=True, decimals=4)}}){%endif%}"><label>Block reward:</label>
+        {{(block_header.reward - sum_fees) | loki(decimals=4)}}</span>
+
+        {%if sum_fees > 0%}
+            <span title="Earned TX fees: {{sum_fees | loki(fixed=True)}}"><label>Block TX fees:</label> {{ sum_fees | loki(fixed=True, decimals=4) }}</span>
+        {%endif%}
+
+        {%if sum_burned > 0%}
+            <span title="{{sum_burned | loki(fixed=True)}} burned in the transactions included in block">
+                <label>Burned fees:</label>
+                {{sum_burned | loki(decimals=4)}} <span class="icon">🔥</span>
+            </span>
+        {%endif%}
+
+        {%if miner_tx.extra.sn_winner%}
+          <span><label>Service Node Winner:</label>
+            {%if miner_tx.extra.sn_winner == "0000000000000000000000000000000000000000000000000000000000000000"%}
+              None
+            {%else%}
+              <a href="/sn/{{miner_tx.extra.sn_winner}}">{{miner_tx.extra.sn_winner}}</a>
+            {%endif%}
+          </span>
+        {%endif%}
+    </h4>
+
+    <h2>Miner Reward Transaction</h2>
+    <div class="TitleUnderliner"></div>
     <table class="Table">
         <tr class="TableHeader">
             <td>Hash</td>
@@ -46,20 +92,18 @@
             <td>Size [kB]</td>
             <td>Version</td>
         </tr>
-        {% for tx in miner_tx %}
-            <tr>
-                <td><a href="/tx/{{tx.hash}}">{{tx.hash}}</a>
-                <td>{{tx.sum_outputs}}</td>
-                <td>{{tx.tx_size}}</td>
-                <td>{{tx.version}}</td>
-            </tr>
-        {% endfor %}
+        <tr>
+            <td><a href="/tx/{{miner_tx.tx_hash}}">{{miner_tx.tx_hash}}</a></td>
+            <td>{{miner_tx.info.vout | sum(attribute='amount') | loki}}</td>
+            <td>{{miner_tx.size}}</td>
+            <td>{{miner_tx.info.version}}</td>
+        </tr>
     </table>
 
 
     <h2>Transactions ({{transactions | length}})</h2>
-    <div class="TitleDivider"></div>
-    {% if not transactions.empty %}
+    <div class="TitleUnderliner"></div>
+    {% if transactions %}
         <table class="Table">
           <thead>
             <tr>
@@ -81,13 +125,24 @@
                   <td>{{fee.display(tx)}}</td>
                   <td></td>
                   <td>{{tx.info.vin | length}}/{{tx.info.vout | length}}</td>
-                  <td>{{tx.size | si}}</td>
+                  <td>{{tx.size | si}}B</td>
                 </tr>
             {% endfor %}
           </tbody>
         </table>
     {% endif %}
 
+    {%if details_html%}
+      <style type="text/css">
+{{details_css | safe}}
+      </style>
+      <div class="TitleDivider" id="more_details"></div>
+      {{details_html | safe}}
+    {%else%}
+      <h5>
+        <a href="/block/{{block_header.hash}}/1#more_details">Show raw details</a>
+      </h5>
+    {%endif%}
 
     {% if enable_as_hex %}
         <h5 style="margin-top:1px">

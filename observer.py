@@ -144,6 +144,13 @@ def base32z(hex):
                 b'ybndrfg8ejkmcpqxot1uwisza345h769')).decode().rstrip('=')
 
 
+@app.template_filter('ellipsize')
+def ellipsize(string, leading=10, trailing=5):
+    if len(string) <= leading + trailing + 3:
+        return string
+    return string[0:leading] + "..." + ('' if not trailing else string[-trailing:])
+
+
 @app.after_request
 def add_global_headers(response):
     if 'Cache-Control' not in response.headers:
@@ -259,13 +266,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             txids.append(b['miner_tx_hash'])
             if 'tx_hashes' in b:
                 txids += b['tx_hashes']
-        txs = FutureJSON(lmq, lokid, 'rpc.get_transactions', args={
-            "txs_hashes": txids,
-            "decode_as_json": True,
-            "tx_extra": True,
-            "prune": True,
-            }).get()
-        txs = txs['txs']
+        txs = parse_txs(tx_req(lmq, lokid, txids, cache_key='mempool').get())
         i = 0
         for tx in txs:
             # TXs should come back in the same order so we can just skip ahead one when the block
@@ -278,7 +279,6 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
                 if i >= len(blocks):
                     print("Something getting wrong: have leftover txes")
                     break
-            tx['info'] = json.loads(tx['as_json'])
             blocks[i]['txs'].append(tx)
 
     
@@ -327,10 +327,10 @@ def sns():
         inactive_sns=inactive,
         )
 
-def tx_req(lmq, lokid, txid, **kwargs):
-    return FutureJSON(lmq, lokid, 'rpc.get_transactions', cache_seconds=10, cache_key='single',
+def tx_req(lmq, lokid, txids, cache_key='single', **kwargs):
+    return FutureJSON(lmq, lokid, 'rpc.get_transactions', cache_seconds=10, cache_key=cache_key,
             args={
-                "txs_hashes": [txid],
+                "txs_hashes": txids,
                 "decode_as_json": True,
                 "tx_extra": True,
                 "prune": True,
@@ -342,22 +342,25 @@ def sn_req(lmq, lokid, pubkey, **kwargs):
             args={"service_node_pubkeys": [pubkey]}, **kwargs
         )
 
-def block_req(lmq, lokid, hash_or_height, **kwargs):
-    if len(hash_or_height) <= 10 and hash_or_height.isdigit():
+
+def block_header_req(lmq, lokid, hash_or_height, **kwargs):
+    if isinstance(hash_or_height, int) or (len(hash_or_height) <= 10 and hash_or_height.isdigit()):
         return FutureJSON(lmq, lokid, 'rpc.get_block_header_by_height', cache_key='single',
                 args={ "height": int(hash_or_height) }, **kwargs)
     else:
         return FutureJSON(lmq, lokid, 'rpc.get_block_header_by_hash', cache_key='single',
                 args={ 'hash': hash_or_height }, **kwargs)
 
-def get_block_with_txs(lmq, lokid, hash_or_height, **kwargs):
-    if len(hash_or_height) <= 10 and hash_or_height.isdigit():
-        return FutureJSON(lmq, lokid, 'rpc.get_block', cache_key='single',
-                args={ "height": int(hash_or_height), 'get_tx_hashes': True }, **kwargs)
+
+def block_with_txs_req(lmq, lokid, hash_or_height, **kwargs):
+    args = { 'get_tx_hashes': True }
+    if isinstance(hash_or_height, int) or (len(hash_or_height) <= 10 and hash_or_height.isdigit()):
+        args['height'] = int(hash_or_height)
     else:
-        return FutureJSON(lmq, lokid, 'rpc.get_block', cache_key='single',
-                args={ 'hash': hash_or_height, 'get_tx_hashes': True }, **kwargs)
-    
+        args['hash'] = hash_or_height
+
+    return FutureJSON(lmq, lokid, 'rpc.get_block', cache_key='single', args=args, **kwargs)
+
 
 @app.route('/service_node/<hex64:pubkey>')  # For backwards compatibility with old explorer URLs
 @app.route('/sn/<hex64:pubkey>')
@@ -390,66 +393,106 @@ def show_sn(pubkey):
             sn=sn,
             )
 
+def parse_txs(txs_rpc):
+    """Takes a tx_req(...).get() response and parses the embedded nested json into something useful
 
-@app.route("/block/<val>")
-def show_block(val):
-    """ """
+    This modifies the txs_rpc['txs'] values in-place.  Returns txs_rpc['txs'] if it exists, otherwise an empty list.
+    """
+    if 'txs' not in txs_rpc:
+        return []
+
+    for tx in txs_rpc['txs']:
+        if 'info' not in tx:
+            # We have serialized JSON data inside a field in the JSON, because of lokid's
+            # multiple incompatible JSON generators 🤮:
+            tx['info'] = json.loads(tx["as_json"])
+            del tx['as_json']
+            # The "extra" field inside as_json is retardedly in per-byte integer values,
+            # convert it to a hex string 🤮:
+            tx['info']['extra'] = bytes_to_hex(tx['info']['extra'])
+    return txs_rpc['txs']
+
+
+@app.route('/block/<int:height>')
+@app.route('/block/<int:height>/<int:more_details>')
+@app.route('/block/<hex64:hash>')
+@app.route('/block/<hex64:hash>/<int:more_details>')
+def show_block(height=None, hash=None, more_details=False):
     lmq, lokid = lmq_connection()
-    block = get_block_with_txs(lmq, lokid, val).get()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1).get()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
     hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
+    if height is not None:
+        val = height
+    elif hash is not None:
+        val = hash
+
+    block = None if val is None else block_with_txs_req(lmq, lokid, val).get()
     if block is None:
         return flask.render_template("not_found.html",
-                                     info=info,
-                                     hfinfo=hfinfo.get(),
-                                     type='block')
+                info=info.get(),
+                hfinfo=hfinfo.get(),
+                type='block',
+                height=height,
+                id=hash
+                )
+
+    next_block = None
+    block_height = block['block_header']['height']
+    txs = None
+    hashes = []
+    if 'tx_hashes' in block:
+        hashes += block['tx_hashes']
+    hashes.append(block['block_header']['miner_tx_hash'])
+    if 'info' not in block:
+        try:
+            block['info'] = json.loads(block["json"])
+            del block['info']['miner_tx']  # Doesn't include enough for us, we fetch it separately with extra interpretation instead
+            del block["json"]
+        except Exception as e:
+            print("Something getting wrong: cannot parse block json for block {}: {}".format(block_height, e), file=sys.stderr)
+
+    txs = tx_req(lmq, lokid, hashes, cache_key='block')
+
+    if info.get()['height'] > 1 + block_height:
+        next_block = block_header_req(lmq, lokid, '{}'.format(block_height + 1))
+
+    if more_details:
+        formatter = HtmlFormatter(cssclass="syntax-highlight", style="native")
+        more_details = {
+                'details_css': formatter.get_style_defs('.syntax-highlight'),
+                'details_html': highlight(json.dumps(block, indent="\t", sort_keys=True), JsonLexer(), formatter),
+                }
     else:
-        next_block = None
-        block_height = block['block_header']['height']
-        transactions = []
-        miner_txs = []
-        if block and 'tx_hashes' in block:
-            hashes = block['tx_hashes']
-            if 'info' not in block:
-                try:
-                    block['info'] = json.loads(block["json"])
-                    del block["json"]
-                except:
-                    pass
-            if 'info' in block:
-                hashes += block['info']['miner_tx']
-            txs = FutureJSON(lmq, lokid, 'rpc.get_transactions', args={
-                "txs_hashes": hashes,
-                "tx_extra": True,
-                "decode_as_json": True,
-                "prune": True
-            }).get()
-            if 'txs' in txs:
-                for tx in txs['txs']:
-                    if 'info' not in tx:
-                        tx['info'] = json.loads(tx["as_json"])
-                        del tx["as_json"]
-                        if 'extra' in tx['info']:
-                            tx['info']['extra'] = bytes_to_hex(tx['info']['extra'])
-                transactions.append(tx)
-        if info['height'] > 1 + block_height:
-            next_block = block_req(lmq, lokid, '{}'.format(block_height + 1)).get()
-        return flask.render_template("block.html",
-                                     info=info,
-                                     hfinfo=hfinfo.get(),
-                                     block_header=block['block_header'],
-                                     block=block,
-                                     transactions=transactions,
-                                     next_block=next_block)
+        more_details = {}
+
+    transactions = [] if txs is None else parse_txs(txs.get()).copy()
+    miner_tx = transactions.pop() if transactions else []
+
+    return flask.render_template("block.html",
+            info=info.get(),
+            hfinfo=hfinfo.get(),
+            block_header=block['block_header'],
+            block=block,
+            miner_tx=miner_tx,
+            transactions=transactions,
+            next_block=next_block.get() if next_block else None,
+            **more_details,
+            )
  
-    
+
+@app.route('/block/latest')
+def show_block_latest():
+    lmq, lokid = lmq_connection()
+    height = FutureJSON(lmq, lokid, 'rpc.get_info', 1).get()['height'] - 1
+    return flask.redirect(flask.url_for('show_block', height=height), code=302)
+
 
 @app.route('/tx/<hex64:txid>')
 @app.route('/tx/<hex64:txid>/<int:more_details>')
 def show_tx(txid, more_details=False):
     lmq, lokid = lmq_connection()
     info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    txs = tx_req(lmq, lokid, txid).get()
+    txs = tx_req(lmq, lokid, [txid]).get()
 
     if 'txs' not in txs or not txs['txs']:
         return flask.render_template('not_found.html',
@@ -457,13 +500,7 @@ def show_tx(txid, more_details=False):
                 type='tx',
                 id=txid,
                 )
-    tx = txs['txs'][0]
-    if 'info' not in tx:
-        tx['info'] = json.loads(tx["as_json"])
-        del tx["as_json"]
-
-        # The "extra" field is retardedly in per-byte values, convert it to a hex string:
-        tx['info']['extra'] = bytes_to_hex(tx['info']['extra'])
+    tx = parse_txs(txs)[0]
 
     kindex_info = {} # { amount => { keyindex => {output-info} } }
     block_info_req = None
@@ -538,7 +575,8 @@ def search():
     val = (flask.request.args.get('value') or '').strip()
 
     if val and len(val) < 10 and val.isdigit(): # Block height
-        return show_block(val)
+        return flask.redirect(flask.url_for('show_block', height=val), code=301)
+
     if not val or len(val) != 64 or any(c not in string.hexdigits for c in val):
         return flask.render_template('not_found.html',
                 info=info.get(),
@@ -548,8 +586,8 @@ def search():
 
     # Initiate all the lookups at once, then redirect to whichever one responds affirmatively
     snreq = sn_req(lmq, lokid, val)
-    blreq = block_req(lmq, lokid, val, fail_okay=True)
-    txreq = tx_req(lmq, lokid, val)
+    blreq = block_header_req(lmq, lokid, val, fail_okay=True)
+    txreq = tx_req(lmq, lokid, [val])
 
     sn = snreq.get()
     if 'service_node_states' in sn and sn['service_node_states']:
