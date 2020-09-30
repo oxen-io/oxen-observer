@@ -30,27 +30,23 @@
         <span title="Unix timestamp: {{block_header.timestamp}}"><label>Timestamp:</label> {{block_header.timestamp | from_timestamp | format_datetime('short')}} UTC
             ({{block_header.timestamp | from_timestamp | ago}} ago)</span>
 
-        <span><label>Major.minor version:</label> {{block_header.major_version}}.{{block_header.minor_version}}</span>
+        <span><label>Major/minor version:</label> {{block_header.major_version}}.{{block_header.minor_version}}</span>
 
         <span><label>Block size:</label> {{block_header.block_size | si}}B</span>
 
         {%if 'nonce' in block_header and block_header['nonce'] != 0%}
-            <span title="Random value added by a miner to achieve sufficient block difficulty"><label>Miner nonce:</label> {{block_header.nonce}}</span>
+            <span title="Miner nonce: {{block_header.nonce}}"><label>Block type:</label> Mined ⛏</span>
             <span title="~ {{(block_header.difficulty / 120) | si }}H/s network hashrate
 
 Cumulative difficulty {{block_header.cumulative_difficulty}}"><label>Difficulty:</label> {{block_header.difficulty}}</span>
-        {%elif 'pulse' in block_header.info%}
-            {%if block_header.info.pulse.round > 0%}
+        {%elif 'pulse' in block.info%}
+            <span title="Pulse random value: {{block.info.pulse.random_value}}
+Validator bits: {{"{:011b}".format(block.info.pulse.validator_bitset)}}"><label>Block type:</label> Pulse 💓</span>
+            {%if block.info.pulse.round > 0%}
                 <span title="When &gt; 0 this indicates how many Service Node rounds failed to produce a valid, signed Pulse block in time">
-                    <title>Pulse round:</title> {{block_header.info.pulse.round}}
+                    <title>Pulse round:</title> {{block.info.pulse.round}}
                 </span>
             {%endif%}
-            <span title="Random value produced by the Pulse round that provide entropy for the blockchain
-
-Pulse participation bits: {{":011b".format(block_header.info.pulse.validator_bitset)}}">
-                <label>Pulse random value:</label>
-                {{block_header.info.pulse.random_value}}
-            </span>
         {%endif%}
 
         {%set sum_burned = transactions | selectattr('extra.burn_amount') | sum(attribute='extra.burn_amount') %}
