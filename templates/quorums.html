@@ -42,35 +42,38 @@
         {%endfor%}
     </div>
 
-    <h2>Recent pulse quorums:</h2>
-    <h4 class="curr-height">Current block height: <span class="omg">{{info.height}}</span></h4>
-    <div class="TitleUnderliner"></div>
 
-    <div class="pulse quorums">
-        {%for q in quorums.pulse[-24:] | reverse%}
-            {%if q.height == info.height%}
-                <div title="The shows primary pulse block producer and signers. Note that a backup quorum may produce and sign the block instead if the primary quorum takes too long to produce a block.">
-                    <h2>Next block</h2>
-            {%else%}
-                <div>
-                    <h2>Block {{q.height}}</h2>
-            {%endif%}
+    {%if quorums.pulse%}
+        <h2>Recent pulse quorums:</h2>
+        <h4 class="curr-height">Current block height: <span class="omg">{{info.height}}</span></h4>
+        <div class="TitleUnderliner"></div>
 
-                <div class="workers">
-                    <label>Block producer:</label>
-                    {%for w in q.quorum.workers%}{#should only be one#}
-                        <a class="sn" href="/sn/{{w}}" title="{{w}}">{{w}}</a>
-                    {%endfor%}
+        <div class="pulse quorums">
+            {%for q in quorums.pulse[-24:] | reverse%}
+                {%if q.height == info.height%}
+                    <div title="The shows primary pulse block producer and signers. Note that a backup quorum may produce and sign the block instead if the primary quorum takes too long to produce a block.">
+                        <h2>Next block</h2>
+                {%else%}
+                    <div>
+                        <h2>Block {{q.height}}</h2>
+                {%endif%}
+
+                    <div class="workers">
+                        <label>Block producer:</label>
+                        {%for w in q.quorum.workers%}{#should only be one#}
+                            <a class="sn" href="/sn/{{w}}" title="{{w}}">{{w}}</a>
+                        {%endfor%}
+                    </div>
+                    <div class="validators">
+                        <label>Validators:</label>
+                        {%for v in q.quorum.validators%}
+                            <a class="sn" href="/sn/{{v}}" title="Validator {{loop.index}}/{{q.quorum.validators | length}}">{{v}}</a>
+                        {%endfor%}
+                    </div>
                 </div>
-                <div class="validators">
-                    <label>Validators:</label>
-                    {%for v in q.quorum.validators%}
-                        <a class="sn" href="/sn/{{v}}" title="Validator {{loop.index}}/{{q.quorum.validators | length}}">{{v}}</a>
-                    {%endfor%}
-                </div>
-            </div>
-        {%endfor%}
-    </div>
+            {%endfor%}
+        </div>
+    {%endif%}
 
 
     <h2>Recent checkpoint quorums:</h2>
