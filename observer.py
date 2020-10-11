@@ -525,6 +525,12 @@ def show_tx(txid, more_details=False):
                 )
     tx = parse_txs(txs)[0]
 
+    # If this is a state change, see if we have the quorum stored to provide context
+    testing_quorum = None
+    if tx['info']['version'] >= 4 and 'sn_state_change' in tx['extra']:
+        testing_quorum = FutureJSON(lmq, lokid, 'rpc.get_quorum_state', 60, cache_key='tx_state_change',
+                args={ 'quorum_type': 0, 'start_height': tx['extra']['sn_state_change']['height'] })
+
     kindex_info = {} # { amount => { keyindex => {output-info} } }
     block_info_req = None
     if 'vin' in tx['info']:
@@ -582,11 +588,20 @@ def show_tx(txid, more_details=False):
             for bh in bi['block_headers']:
                 block_info[bh['height']] = bh
 
+
+    if testing_quorum:
+        testing_quorum = testing_quorum.get()
+        if 'quorums' in testing_quorum and testing_quorum['quorums']:
+            testing_quorum = testing_quorum['quorums'][0]['quorum']
+        else:
+            testing_quorum = None
+
     return flask.render_template('tx.html',
             info=info.get(),
             tx=tx,
             kindex_info=kindex_info,
             block_info=block_info,
+            testing_quorum=testing_quorum,
             **more_details,
             )
 

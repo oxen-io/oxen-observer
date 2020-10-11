@@ -94,33 +94,42 @@
             {% endif -%}
             </h2>
 
-            {#FIXME -- all the values below need to be fixed#}
             <div class="TitleDivider"></div>
-            {%if state_change_have_pubkey_info%}
-                <p class="state-change-pubkey">Service Node Public Key: <a href="/sn/{{state_change_service_node_pubkey}}">{{state_change_service_node_pubkey}}</a></p>
+            {%set sn_index = tx.extra.sn_state_change.index%}
+            {%if testing_quorum%}
+                <p class="state-change-pubkey">Service Node Public Key: <a href="/sn/{{testing_quorum.workers[sn_index]}}">{{testing_quorum.workers[sn_index]}}</a></p>
+                <div class="quorums">
+                    <div class="tx-state-change-quorum">
+                        <h2>Testing quorum {{tx.extra.sn_state_change.height}}</h2>
+
+                        {%set voters = tx.extra.sn_state_change.voters%}
+                        <div class="validators">
+                            <label>Validators:</label>
+                            {%for v in testing_quorum.validators%}
+                                <a
+                                    {%if loop.index0 in voters%} class="sn voted" title="{{v}}
+This tx includes a verified vote by this testing service node."
+                                    {%else%} class="sn" title="{{v}}
+This tx does not includes a vote from this testing service node (only 7 votes are needed)."
+                                    {%endif%}
+                                    href="/sn/{{v}}">{{v}}</a>
+                            {%endfor%}
+                        </div>
+                        <div class="workers">
+                            <label>SNs tested:</label>
+                            {%for w in testing_quorum.workers%}
+                                <a class="sn{%if loop.index0 == sn_index%} testee{%endif%}"
+                                   href="/sn/{{w}}" title="{{w}}">{{w}}</a>
+                            {%endfor%}
+                        </div>
+                    </div>
+                </div>
+            {%else%}
+                <div title="This quorum information is no longer available (only recent quorum data is stored)">
+                    <p>Service Node Index: {{sn_index}}</p>
+                    <p>Testing quorum: {{tx.extra.sn_state_change.height}}</a></p>
+                </div>
             {%endif%}
-            <p>Service Node Index: {{state_change_service_node_index}}</p>
-            <p>Block Height: <a href="/block/{{state_change_block_height}}">{{state_change_block_height}}</a></p>
-
-            <table class="Table">
-                <tr class="TableHeader">
-                    <th class="voter-index">Voters Quorum Index</th>
-                    {%if state_change_have_pubkey_info%}
-                        <th class="voter-pubkey">Voter Public Key</th>
-                    {%endif%}
-                    <th class="voter-signature">Signature</th>
-                </tr>
-
-                {%if state_change_vote_array%}
-                    <tr>
-                        <td class="voter-index">{{state_change_voters_quorum_index}}</td>
-                        {%if state_change_have_pubkey_info%}
-                            <td class="voter-pubkey"><a href="/sn/{{state_change_voter_pubkey}}">{{state_change_voter_pubkey}}</a></td>
-                        {%endif%}
-                        <td class="voter-signature" title="{{state_change_signature}}">{{state_change_signature}}</td>
-                    </tr>
-                {%endif%}
-            </table>
 
         {% elif tx.info.type == 2 %}
             <h2>🔓 Service Node Unlock</h2>
@@ -174,31 +183,33 @@
     {% endif %}
 
 
-    <h2>Outputs</h2>
-    <h4 class="Subtitle">{{tx.info.vout|length}} output(s) for total of
-        {{tx.info.vout | sum(attribute='amount') | loki(zero='<span title="Regular LOKI tx amounts are private">???</span>') | safe}}</h4>
-    <div class="TitleDivider"></div>
-    <div class="tx-outputs">
-        <table class="Table">
-            <thead>
-                <tr>
-                    <td>Stealth Address</td>
-                    <td>Amount</td>
-                    <td title="Global blockchain output counter">Output Index</td>
-                </tr>
-            </thead>
-
-            <tbody>
-                {%for out in tx.info.vout%}
+    {%if tx.info.vout%}
+        <h2>Outputs</h2>
+        <h4 class="Subtitle">{{tx.info.vout|length}} output(s) for total of
+            {{tx.info.vout | sum(attribute='amount') | loki(zero='<span title="Regular LOKI tx amounts are private">???</span>') | safe}}</h4>
+        <div class="TitleDivider"></div>
+        <div class="tx-outputs">
+            <table class="Table">
+                <thead>
                     <tr>
-                        <td><label>{{loop.index0}}:</label> {{out.target.key}}</td>
-                        <td>{{out.amount | loki(zero='?')}}</td>
-                        <td>{%if 'output_indices' in tx%}{{tx.output_indices[loop.index0]}}{# FIXME: of {{num_outputs}}#}{%endif%}</td>
+                        <td>Stealth Address</td>
+                        <td>Amount</td>
+                        <td title="Global blockchain output counter">Output Index</td>
                     </tr>
-                {%endfor%}
-            </tbody>
-        </table>
-    </div>
+                </thead>
+
+                <tbody>
+                    {%for out in tx.info.vout%}
+                        <tr>
+                            <td><label>{{loop.index0}}:</label> {{out.target.key}}</td>
+                            <td>{{out.amount | loki(zero='?')}}</td>
+                            <td>{%if 'output_indices' in tx%}{{tx.output_indices[loop.index0]}}{# FIXME: of {{num_outputs}}#}{%endif%}</td>
+                        </tr>
+                    {%endfor%}
+                </tbody>
+            </table>
+        </div>
+    {%endif%}
 
     {#FIXME
     {%if not have_raw_tx%}

@@ -415,6 +415,26 @@ td.quorum-pubkey span {
     text-align: left;
 }
 
+div.tx-state-change-quorum div.workers {
+    border-top: 2px solid #008522;
+}
+div.tx-state-change-quorum div.validators .sn.voted,
+div.tx-state-change-quorum div.workers .sn.testee {
+    background-color: #006a1b;
+    border-color: #78be20;
+    color: #78be20;
+}
+.quorums div.tx-state-change-quorum .sn:hover {
+    background-color: #78be20 !important;
+    border-color: #006a1b !important;
+    color: #006a1b !important;
+}
+
+/*div.tx-state-change-quorum>div>.sn {
+    flex-basis: 100px;
+}*/
+
+
 th.subheader {
     text-align: left;
     border-bottom: 2px solid #008522;
