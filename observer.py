@@ -433,6 +433,22 @@ def parse_txs(txs_rpc):
     return txs_rpc['txs']
 
 
+def get_block_txs_future(lmq, lokid, block):
+    hashes = []
+    if 'tx_hashes' in block:
+        hashes += block['tx_hashes']
+    hashes.append(block['block_header']['miner_tx_hash'])
+    if 'info' not in block:
+        try:
+            block['info'] = json.loads(block["json"])
+            del block['info']['miner_tx']  # Doesn't include enough for us, we fetch it separately with extra interpretation instead
+            del block["json"]
+        except Exception as e:
+            print("Something getting wrong: cannot parse block json for block {}: {}".format(block_height, e), file=sys.stderr)
+
+    return tx_req(lmq, lokid, hashes, cache_key='block')
+
+
 @app.route('/block/<int:height>')
 @app.route('/block/<int:height>/<int:more_details>')
 @app.route('/block/<hex64:hash>')
@@ -458,20 +474,7 @@ def show_block(height=None, hash=None, more_details=False):
 
     next_block = None
     block_height = block['block_header']['height']
-    txs = None
-    hashes = []
-    if 'tx_hashes' in block:
-        hashes += block['tx_hashes']
-    hashes.append(block['block_header']['miner_tx_hash'])
-    if 'info' not in block:
-        try:
-            block['info'] = json.loads(block["json"])
-            del block['info']['miner_tx']  # Doesn't include enough for us, we fetch it separately with extra interpretation instead
-            del block["json"]
-        except Exception as e:
-            print("Something getting wrong: cannot parse block json for block {}: {}".format(block_height, e), file=sys.stderr)
-
-    txs = tx_req(lmq, lokid, hashes, cache_key='block')
+    txs = get_block_txs_future(lmq, lokid, block)
 
     if info.get()['height'] > 1 + block_height:
         next_block = block_header_req(lmq, lokid, '{}'.format(block_height + 1))
@@ -637,3 +640,73 @@ def search():
             id=val,
             )
 
+@app.route('/api/networkinfo')
+def api_networkinfo():
+    lmq, lokid = lmq_connection()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
+    hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
+
+    info = info.get()
+    data = {**info}
+    hfinfo = hfinfo.get()
+    data['current_hf_version'] = hfinfo['version']
+    data['next_hf_height'] = hfinfo['earliest_height'] if 'earliest_height' in hfinfo else None
+    return flask.jsonify({"data": data, "status": "OK"})
+
+
+@app.route('/api/emission')
+def api_emission():
+    lmq, lokid = lmq_connection()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
+    coinbase = FutureJSON(lmq, lokid, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
+            args={"height":0, "count":2**31-1}).get()
+    if not coinbase:
+        return flask.jsonify(None)
+    info = info.get()
+    return flask.jsonify({
+        "data": {
+            "blk_no": info['height'] - 1,
+            "burn": coinbase["burn_amount"],
+            "circulating_supply": coinbase["emission_amount"] - coinbase["burn_amount"],
+            "coinbase": coinbase["emission_amount"] - coinbase["burn_amount"],
+            "emission": coinbase["emission_amount"],
+            "fee": coinbase["fee_amount"]
+        },
+        "status": "success"
+    })
+
+
+@app.route('/api/circulating_supply')
+def api_circulating_supply():
+    lmq, lokid = lmq_connection()
+    coinbase = FutureJSON(lmq, lokid, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
+            args={"height":0, "count":2**31-1}).get()
+    return flask.jsonify((coinbase["emission_amount"] - coinbase["burn_amount"]) // 1000000000 if coinbase else None)
+
+
+# FIXME: need better error handling here
+@app.route('/api/transaction/<hex64:txid>')
+def api_tx(txid):
+    lmq, lokid = lmq_connection()
+    tx = tx_req(lmq, lokid, [txid]).get()
+    txs = parse_txs(tx)
+    return flask.jsonify({
+        "status": tx['status'],
+        "data": (txs[0] if txs else None),
+        })
+
+@app.route('/api/block/<int:height>')
+@app.route('/api/block/<hex64:blkid>')
+def api_block(blkid=None, height=None):
+    lmq, lokid = lmq_connection()
+    block = block_with_txs_req(lmq, lokid, blkid if blkid is not None else height).get()
+    txs = get_block_txs_future(lmq, lokid, block)
+
+    if 'block_header' in block:
+        data = block['block_header'].copy()
+        data["txs"] = parse_txs(txs.get()).copy()
+
+    return flask.jsonify({
+        "status": block['status'],
+        "data": data,
+        })
