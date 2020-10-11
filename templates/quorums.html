@@ -1,0 +1,101 @@
+
+{% extends "_basic.html" %}
+
+{% block content %}
+
+<div class="Wrapper">
+
+    <h2>Service Node testing quorums:</h2>
+    <div class="TitleUnderliner"></div>
+
+    <div class="obligations quorums">
+        {%for q in quorums.obligation[-18:] | reverse%}
+            <div>
+                <h2 title="This testing quorum is determined by block {{q.height}}">
+                    {# quorum height + 13 here because a node only does an obligations test once the
+                    node has at least 11 blocks on top of it, which means it is 13 blocks below the
+                    blockchain height, which means it has to be (at least) the 12th oldest block, +1
+                    because info.height is the top height + 1 #}
+                    Block {{q.height + 13}}
+                    {%if q.height + 13 > info.height%}
+                        (~{{(q.height + 13 - info.height) * 2}} minutes)
+                    {%elif q.height + 13 == info.height%}
+                        (testing now!)
+                    {%else%}
+                        (~{{(info.height - (q.height + 13)) * 2}} minutes ago)
+                    {%endif%}
+                </h2>
+
+                <div class="validators">
+                    <label>Validators:</label>
+                    {%for v in q.quorum.validators%}
+                        <a class="sn" href="/sn/{{v}}" title="{{v}}">{{v}}</a>
+                    {%endfor%}
+                </div>
+                <div class="workers">
+                    <label>SNs to test:</label>
+                    {%for w in q.quorum.workers%}
+                        <a class="sn" href="/sn/{{w}}" title="{{w}}">{{w}}</a>
+                    {%endfor%}
+                </div>
+            </div>
+        {%endfor%}
+    </div>
+
+    <h2>Recent pulse quorums:</h2>
+    <h4 class="curr-height">Current block height: <span class="omg">{{info.height}}</span></h4>
+    <div class="TitleUnderliner"></div>
+
+    <div class="pulse quorums">
+        {%for q in quorums.pulse[-24:] | reverse%}
+            {%if q.height == info.height%}
+                <div title="The shows primary pulse block producer and signers. Note that a backup quorum may produce and sign the block instead if the primary quorum takes too long to produce a block.">
+                    <h2>Next block</h2>
+            {%else%}
+                <div>
+                    <h2>Block {{q.height}}</h2>
+            {%endif%}
+
+                <div class="workers">
+                    <label>Block producer:</label>
+                    {%for w in q.quorum.workers%}{#should only be one#}
+                        <a class="sn" href="/sn/{{w}}" title="{{w}}">{{w}}</a>
+                    {%endfor%}
+                </div>
+                <div class="validators">
+                    <label>Validators:</label>
+                    {%for v in q.quorum.validators%}
+                        <a class="sn" href="/sn/{{v}}" title="Validator {{loop.index}}/{{q.quorum.validators | length}}">{{v}}</a>
+                    {%endfor%}
+                </div>
+            </div>
+        {%endfor%}
+    </div>
+
+
+    <h2>Recent checkpoint quorums:</h2>
+    <h4 class="curr-height">Current block height: <span class="omg">{{info.height}}</span></h4>
+    <div class="TitleUnderliner"></div>
+
+    <div class="checkpoint quorums">
+        {%for q in quorums.checkpoint[-12:] | reverse%}
+            <div>
+                <h2 title="This checkpoint quorum is determined by block {{q.height - 11}}">
+                    Block {{q.height}}
+                </h2>
+
+                <div class="validators">
+                    <!--<label>Service Nodes:</label>-->
+                    {%for v in q.quorum.validators%}
+                        <a class="sn" href="/sn/{{v}}" title="{{v}}
+Validator {{loop.index}}/{{q.quorum.validators | length}}">{{v}}</a>
+                    {%endfor%}
+                </div>
+            </div>
+        {%endfor%}
+    </div>
+
+
+</div>
+
+{% endblock %}

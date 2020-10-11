@@ -145,10 +145,10 @@ def base32z(hex):
 
 
 @app.template_filter('ellipsize')
-def ellipsize(string, leading=10, trailing=5):
+def ellipsize(string, leading=10, trailing=5, ellipsis='...'):
     if len(string) <= leading + trailing + 3:
         return string
-    return string[0:leading] + "..." + ('' if not trailing else string[-trailing:])
+    return string[0:leading] + ellipsis + ('' if not trailing else string[-trailing:])
 
 
 @app.after_request
@@ -191,6 +191,29 @@ def get_sns(sns_future, info_future):
         else:
             awaiting_sns.append(sn)
     return awaiting_sns, active_sns, inactive_sns
+
+
+def get_quorums_future(lmq, lokid, height):
+    return FutureJSON(lmq, lokid, 'rpc.get_quorum_state', 30,
+            args={ 'start_height': height-50, 'end_height': height })
+
+
+def get_quorums(quorums_future):
+    oblig_quorums, checkpoint_quorums, pulse_quorums = [], [], []
+
+    quorums = quorums_future.get()
+    quorums = quorums['quorums'] if 'quorums' in quorums else []
+    for q in quorums:
+        if q['quorum_type'] == 0:
+            oblig_quorums.append(q)
+        elif q['quorum_type'] == 1:
+            checkpoint_quorums.append(q)
+        elif q['quorum_type'] == 3:
+            pulse_quorums.append(q)
+        else:
+            print("Something getting wrong in quorums: found unknown quorum_type={}".format(q['quorum_type']), file=sys.stderr)
+    return oblig_quorums, checkpoint_quorums, pulse_quorums
+
 
 @app.context_processor
 def template_globals():
@@ -565,6 +588,19 @@ def show_tx(txid, more_details=False):
             kindex_info=kindex_info,
             block_info=block_info,
             **more_details,
+            )
+
+
+@app.route('/quorums')
+def show_quorums():
+    lmq, lokid = lmq_connection()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
+    quos = get_quorums_future(lmq, lokid, info.get()['height'])
+    obl_q, cp_q, pulse_q = get_quorums(quos)
+
+    return flask.render_template('quorums.html',
+            info=info.get(),
+            quorums=dict(obligation=obl_q, checkpoint=cp_q, pulse=pulse_q),
             )
 
 

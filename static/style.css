@@ -317,6 +317,99 @@ td.voter-signature {
     text-overflow: ellipsis;
 }
 
+div.quorums {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    padding: 0;
+}
+
+div.quorums>div {
+    border: 2px solid #008522;
+    border-radius: 5px;
+    padding: 0;
+    flex-grow: 1;
+}
+div.quorums.obligations>div {
+    flex-basis: 300px;
+    margin: 5px;
+}
+div.quorums.obligations {
+    margin: 0 -5px;
+}
+div.quorums.checkpoint>div {
+    flex-basis: 200px;
+    margin: 5px;
+}
+div.quorums.checkpoint {
+    margin: 0 -5px;
+}
+div.quorums.pulse>div {
+    flex-basis: 200px;
+    margin: 5px;
+}
+div.quorums.checkpoint {
+    margin: 0 -5px;
+}
+h4.curr-height {
+    margin-top: 0px;
+}
+
+div.quorums>div>.validators,
+div.quorums>div>.workers {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: baseline;
+    /*justify-content: center;*/
+    /*space-between;*/
+}
+.quorums.obligations .workers, .quorums.pulse .validators {
+    border-top: 2px solid #008522;
+}
+.quorums .workers label, .quorums .validators label {
+    font-weight: bold;
+}
+.quorums .sn {
+    display: block;
+    flex-basis: 40px;
+    max-width: 60px;
+    flex-grow: 1;
+    background-color: #bbb;
+    border: 1px solid #555;
+    border-radius: 5px;
+    overflow: hidden;
+    text-overflow: "";
+    margin: 3px 3px;
+    padding: 1px 1px 1px 1px;
+    font-size: 10px;
+    color: black;
+    text-decoration: none;
+}
+.quorums .validators .sn {
+    background-color: #777;
+    border: 1px solid #aaa;
+    color: white;
+}
+.quorums .sn:hover {
+    background-color: #006a1b;
+    border-color: #78be20;
+    color: #78be20;
+}
+.quorums.pulse .workers .sn {
+    flex-grow: 1;
+    max-width: 150px;
+}
+div.quorums h2 {
+    background-color: #008522;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0;
+}
+div.quorums h5 {
+    margin: 0;
+}
+
 td.quorum-pubkey span {
     display: inline-block;
     width: 80ex;
