@@ -10,7 +10,7 @@
 
     <div class="obligations quorums">
         {%for q in quorums.obligation[-18:] | reverse%}
-            <div>
+            <div{%if q.height + 13 == info.height%} class="now"{%endif%}>
                 <h2 title="This testing quorum is determined by block {{q.height}}">
                     {# quorum height + 13 here because a node only does an obligations test once the
                     node has at least 11 blocks on top of it, which means it is 13 blocks below the
@@ -44,7 +44,7 @@
 
 
     {%if quorums.pulse%}
-        <h2>Recent pulse quorums:</h2>
+        <h2>Recent Pulse quorums:</h2>
         <h4 class="curr-height">Current block height: <span class="omg">{{info.height}}</span></h4>
         <div class="TitleUnderliner"></div>
 
@@ -67,7 +67,7 @@
                     <div class="validators">
                         <label>Validators:</label>
                         {%for v in q.quorum.validators%}
-                            <a class="sn" href="/sn/{{v}}" title="Validator {{loop.index}}/{{q.quorum.validators | length}}">{{v}}</a>
+                            <a class="sn" href="/sn/{{v}}" title="{{v}}">{{v}}</a>
                         {%endfor%}
                     </div>
                 </div>
@@ -76,7 +76,7 @@
     {%endif%}
 
 
-    <h2>Recent checkpoint quorums:</h2>
+    <h2>Recent Checkpoint quorums:</h2>
     <h4 class="curr-height">Current block height: <span class="omg">{{info.height}}</span></h4>
     <div class="TitleUnderliner"></div>
 
@@ -92,6 +92,38 @@
                     {%for v in q.quorum.validators%}
                         <a class="sn" href="/sn/{{v}}" title="{{v}}
 Validator {{loop.index}}/{{q.quorum.validators | length}}">{{v}}</a>
+                    {%endfor%}
+                </div>
+            </div>
+        {%endfor%}
+    </div>
+
+
+    <h2>Recent Blink quorums:</h2>
+    <h4 class="curr-height">Current block height: <span class="omg">{{info.height}}</span></h4>
+    <div class="TitleUnderliner"></div>
+
+    <div class="blink quorums">
+        {# Blink quorums are not fully independent: a blink quorum at height H is subquorum 0 for txes submitted at blockchain height
+        [H+35, H+39], and subquorum 1 for txes submitted at height [H+30, H+34]. We want to show the full quorum here for each 5-block
+        range, which means each subquorum gets printed twice: as Q0 in one and Q1 in the next one.
+        #}
+        {%for q in quorums.blink[-9:-1] | reverse%}
+            {%set qnext = quorums.blink[-loop.index]%}
+            {%set current = q.height + 30 <= info.height <= q.height + 34%}
+            <div{%if current%} class="now"{%endif%}>
+                <h2 title="Determined by blocks {{q.height}} and {{qnext.height}}">Blocks {{q.height + 30}}–{{q.height + 34}}{%if current%} (current){%endif%}</h2>
+
+                <div class="validators q0">
+                    <label title="Subquorum 0; a blink must be approved by at least 7 service nodes from each subquorum">Q₀:</label>
+                    {%for v in qnext.quorum.validators%}
+                        <a class="sn" href="/sn/{{v}}" title="{{v}}">{{v}}</a>
+                    {%endfor%}
+                </div>
+                <div class="validators q1">
+                    <label title="Subquorum 1; a blink must be approved by at least 7 service nodes from each subquorum">Q₁:</label>
+                    {%for v in q.quorum.validators%}
+                        <a class="sn" href="/sn/{{v}}" title="{{v}}">{{v}}</a>
                     {%endfor%}
                 </div>
             </div>

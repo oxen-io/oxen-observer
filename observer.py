@@ -195,24 +195,21 @@ def get_sns(sns_future, info_future):
 
 def get_quorums_future(lmq, lokid, height):
     return FutureJSON(lmq, lokid, 'rpc.get_quorum_state', 30,
-            args={ 'start_height': height-50, 'end_height': height })
+            args={ 'start_height': height-55, 'end_height': height })
 
 
 def get_quorums(quorums_future):
-    oblig_quorums, checkpoint_quorums, pulse_quorums = [], [], []
+    qkey = ["obligation", "checkpoint", "blink", "pulse"]
+    quo = {x: [] for x in qkey}
 
     quorums = quorums_future.get()
     quorums = quorums['quorums'] if 'quorums' in quorums else []
     for q in quorums:
-        if q['quorum_type'] == 0:
-            oblig_quorums.append(q)
-        elif q['quorum_type'] == 1:
-            checkpoint_quorums.append(q)
-        elif q['quorum_type'] == 3:
-            pulse_quorums.append(q)
+        if q['quorum_type'] <= len(qkey):
+            quo[qkey[q['quorum_type']]].append(q)
         else:
             print("Something getting wrong in quorums: found unknown quorum_type={}".format(q['quorum_type']), file=sys.stderr)
-    return oblig_quorums, checkpoint_quorums, pulse_quorums
+    return quo
 
 
 @app.context_processor
@@ -596,11 +593,10 @@ def show_quorums():
     lmq, lokid = lmq_connection()
     info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
     quos = get_quorums_future(lmq, lokid, info.get()['height'])
-    obl_q, cp_q, pulse_q = get_quorums(quos)
 
     return flask.render_template('quorums.html',
             info=info.get(),
-            quorums=dict(obligation=obl_q, checkpoint=cp_q, pulse=pulse_q),
+            quorums=get_quorums(quos)
             )
 
 

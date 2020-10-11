@@ -322,6 +322,7 @@ div.quorums {
     flex-wrap: wrap;
     justify-content: space-evenly;
     padding: 0;
+    margin: 0 -5px;
 }
 
 div.quorums>div {
@@ -329,27 +330,19 @@ div.quorums>div {
     border-radius: 5px;
     padding: 0;
     flex-grow: 1;
+    margin: 5px;
 }
 div.quorums.obligations>div {
     flex-basis: 300px;
-    margin: 5px;
-}
-div.quorums.obligations {
-    margin: 0 -5px;
 }
 div.quorums.checkpoint>div {
     flex-basis: 200px;
-    margin: 5px;
-}
-div.quorums.checkpoint {
-    margin: 0 -5px;
 }
 div.quorums.pulse>div {
     flex-basis: 200px;
-    margin: 5px;
 }
-div.quorums.checkpoint {
-    margin: 0 -5px;
+div.quorums.blink>div {
+    flex-basis: 275px;
 }
 h4.curr-height {
     margin-top: 0px;
@@ -363,7 +356,7 @@ div.quorums>div>.workers {
     /*justify-content: center;*/
     /*space-between;*/
 }
-.quorums.obligations .workers, .quorums.pulse .validators {
+.quorums.obligations .workers, .quorums.pulse .validators, .quorums.blink .validators.q1 {
     border-top: 2px solid #008522;
 }
 .quorums .workers label, .quorums .validators label {
@@ -405,6 +398,12 @@ div.quorums h2 {
     font-size: 14px;
     font-weight: bold;
     margin: 0;
+}
+div.quorums>div.now h2 {
+    background-color: #78be20;
+}
+div.quorums>div.now, div.quorums.obligations>div.now .workers, div.quorums.blink>div.now {
+    border-color: #78be20;
 }
 div.quorums h5 {
     margin: 0;
