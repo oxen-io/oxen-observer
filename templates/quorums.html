@@ -51,7 +51,7 @@
         <div class="pulse quorums">
             {%for q in quorums.pulse[-24:] | reverse%}
                 {%if q.height == info.height%}
-                    <div title="The shows primary pulse block producer and signers. Note that a backup quorum may produce and sign the block instead if the primary quorum takes too long to produce a block.">
+                    <div class="now" title="The shows primary pulse block producer and signers. Note that a backup quorum may produce and sign the block instead if the primary quorum takes too long to produce a block.">
                         <h2>Next block</h2>
                 {%else%}
                     <div>
