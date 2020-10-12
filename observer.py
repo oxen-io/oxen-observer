@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import flask
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import babel.dates
 import json
 import sys
@@ -42,11 +42,11 @@ def format_datetime(value, format='long'):
 
 @app.template_filter('from_timestamp')
 def from_timestamp(value):
-    return datetime.fromtimestamp(value)
+    return datetime.fromtimestamp(value, tz=timezone.utc)
 
 @app.template_filter('ago')
 def datetime_ago(value):
-    delta = datetime.now() - value
+    delta = datetime.now(timezone.utc) - value
     disp=''
     if delta.days < 0:
         delta = -delta
@@ -217,7 +217,7 @@ def template_globals():
     return {
         'config': conf,
         'server': {
-            'datetime': datetime.utcnow(),
+            'datetime': datetime.now(timezone.utc),
             'timestamp': datetime.utcnow().timestamp(),
             'revision': git_rev,
         },
