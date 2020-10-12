@@ -19,15 +19,14 @@
           <td><a href="/block/{{cp.block_hash}}">{{cp.block_hash}}</a></td>
           <td>
             <a href="/checkpoint_quorum/{{cp.height}}">{{cp.signatures|length}}/20 signatures</a>:
-            {% set sigs = namespace(next=0) %}
             {%for sig in cp.signatures%}
-              {%for missing in range(sigs.next, loop.index0)%}
+              {%set prev_ind = 0 if loop.index0 == 0 else cp.signatures[loop.index0 - 1].voter_index%}
+              {%for missing in range(prev_ind + 1, sig.voter_index)%}
                 <span title="Missing signature from checkpoint quorum voter {{missing}}" class="checkpoint-not-signed">✕</span>
               {%endfor%}
-              <span title="Signed by checkpoint quorum voter {{loop.index0}}" class="checkpoint-signed">✓</span>
-              {%set sigs.next = loop.index0 + 1%}
+              <span title="Signed by checkpoint quorum voter {{sig.voter_index}}" class="checkpoint-signed">✓</span>
               {%endfor%}
-              {%for missing in range(sigs.next, 20)%}
+              {%for missing in range(cp.signatures[-1].voter_index + 1, 20)%}
                 <span title="Missing signature from checkpoint quorum voter {{missing}}" class="checkpoint-not-signed">✕</span>
               {%endfor%}
             {%endfor%}
