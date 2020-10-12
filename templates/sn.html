@@ -79,6 +79,15 @@
       {%endif%}
     </span>
 
+    <span>
+      <label>Version:</label>
+      {%if sn.last_uptime_proof == 0%}
+        <span>Not received</span>
+      {%else%}
+        <span>{{sn.service_node_version[0]}}.{{sn.service_node_version[1]}}.{{sn.service_node_version[2]}}</span>
+      {%endif%}
+    </span>
+
   </h4>
 
   <h2>Service Node Status</h2>
