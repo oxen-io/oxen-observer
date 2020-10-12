@@ -24,14 +24,29 @@
                     {% endif %}
                 </span>
             {% endif %}
+
+            {% if info.mainnet and config.lokinet_mainnet_url %}
+                <span><a href="{{config.lokinet_mainnet_url}}">Connect via Lokinet</a></span>
+            {% elif info.testnet and config.lokinet_testnet_url %}
+                <span><a href="{{config.lokinet_testnet_url}}">Connect via Lokinet</a></span>
+            {% elif info.devnet and config.lokinet_devnet_url %}
+                <span><a href="{{config.lokinet_devnet_url}}">Connect via Lokinet</a></span>
+            {% endif %}
+
             {% if config.testnet_url and not info.testnet %}
-                <span><a href="{{config.testnet_url}}">Go to testnet explorer</a></span>
+                <span><a href="{{config.testnet_url}}">Go to testnet explorer</a>
+                    {%if config.lokinet_testnet_url%}(<a href="{{config.lokinet_testnet_url}}">via Lokinet</a>){%endif%}
+                </span>
             {% endif %}
             {% if config.devnet_url and not info.devnet %}
-                <span><a href="{{config.devnet_url}}">Go to devnet explorer</a></span>
+                <span><a href="{{config.devnet_url}}">Go to devnet explorer</a>
+                    {%if config.lokinet_devnet_url%}(<a href="{{config.lokinet_devnet_url}}">via Lokinet</a>){%endif%}
+                </span>
             {% endif %}
             {% if config.mainnet_url and not info.mainnet %}
-                <span><a href="{{config.mainnet_url}}">Go to mainnet explorer</a></span>
+                <span><a href="{{config.mainnet_url}}">Go to mainnet explorer</a>
+                    {%if config.lokinet_mainnet_url%}(<a href="{{config.lokinet_mainnet_url}}">via Lokinet</a>){%endif%}
+                </span>
             {% endif %}
             {% if info.testnet %}
                 <span>This is <span style="color:#ff6b62; font-weight: bold">TESTNET</span> blockchain</span>
