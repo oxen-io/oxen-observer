@@ -153,8 +153,12 @@ def ellipsize(string, leading=10, trailing=5, ellipsis='...'):
 
 @app.after_request
 def add_global_headers(response):
-    if 'Cache-Control' not in response.headers:
-        response.headers['Cache-Control'] = 'no-store'
+    for k, v in {
+            'Cache-Control': 'no-store',
+            'Access-Control-Allow-Origin': '*',
+            }.items():
+        if k not in response.headers:
+            response.headers[k] = v
     return response
 
 @app.route('/style.css')
