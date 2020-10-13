@@ -211,6 +211,26 @@ def get_quorums(quorums_future):
             print("Something getting wrong in quorums: found unknown quorum_type={}".format(q['quorum_type']), file=sys.stderr)
     return quo
 
+def get_mempool_future(lmq, lokid):
+    return FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5, args={"tx_extra":True})
+
+def parse_mempool(mempool_future):
+    # mempool RPC return values are about as nasty as can be.  For each mempool tx, we get back
+    # *both* binary+hex encoded values and JSON-encoded values slammed into a string, which means we
+    # have to invoke an *extra* JSON parser for each tx.  This is terrible.
+    mp = mempool_future.get()
+    if 'transactions' in mp:
+        # If we have a cached value we have already sorted it
+        if '_sorted' not in mp:
+            mp['transactions'].sort(key=lambda tx: (tx['receive_time'], tx['id_hash']))
+            mp['_sorted'] = True
+
+        for tx in mp['transactions']:
+            tx['info'] = json.loads(tx["tx_json"])
+    else:
+        mp['transactions'] = []
+    return mp
+
 
 @app.context_processor
 def template_globals():
@@ -235,7 +255,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
     stake = FutureJSON(lmq, lokid, 'rpc.get_staking_requirement', 10)
     base_fee = FutureJSON(lmq, lokid, 'rpc.get_fee_estimate', 10)
     hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
-    mempool = FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5, args={"tx_extra":True})
+    mempool = get_mempool_future(lmq, lokid)
     sns = get_sns_future(lmq, lokid)
     checkpoints = FutureJSON(lmq, lokid, 'rpc.get_checkpoints', args={"count": 3})
 
@@ -301,17 +321,6 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
                     break
             blocks[i]['txs'].append(tx)
 
-    
-    # mempool RPC return values are about as nasty as can be.  For each mempool tx, we get back
-    # *both* binary+hex encoded values and JSON-encoded values slammed into a string, which means we
-    # have to invoke an *extra* JSON parser for each tx.  This is terrible.
-    mp = mempool.get()
-    if 'transactions' in mp:
-        for tx in mp['transactions']:
-            tx['info'] = json.loads(tx["tx_json"])
-    else:
-        mp['transactions'] = []
-
     # Clean up the SN data a bit to make things easier for the templates
     awaiting_sns, active_sns, inactive_sns = get_sns(sns, inforeq)
 
@@ -329,9 +338,21 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             page=page,
             per_page=per_page,
             custom_per_page=custom_per_page,
-            mempool=mp,
+            mempool=parse_mempool(mempool),
             checkpoints=checkpoints.get(),
             refresh=refresh,
+            )
+
+
+@app.route('/txpool')
+def mempool():
+    lmq, lokid = lmq_connection()
+    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
+    mempool = get_mempool_future(lmq, lokid)
+
+    return flask.render_template('mempool.html',
+            info=info.get(),
+            mempool=parse_mempool(mempool),
             )
 
 @app.route('/service_nodes')
