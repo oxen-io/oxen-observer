@@ -71,6 +71,15 @@
     </span>
 
     <span>
+      <label>Version:</label>
+      {%if sn.last_uptime_proof == 0%}
+        <span>Not received</span>
+      {%else%}
+        <span>{{sn.service_node_version[0]}}.{{sn.service_node_version[1]}}.{{sn.service_node_version[2]}}</span>
+      {%endif%}
+    </span>
+
+    <span>
       <label class="omg{%if server.timestamp - sn.last_uptime_proof > 3900%} warning{%endif%}">Last uptime proof:</label>
       {%if sn.last_uptime_proof == 0%}
         <span>Not received</span>
@@ -79,13 +88,30 @@
       {%endif%}
     </span>
 
-    <span>
-      <label>Version:</label>
-      {%if sn.last_uptime_proof == 0%}
-        <span>Not received</span>
-      {%else%}
-        <span>{{sn.service_node_version[0]}}.{{sn.service_node_version[1]}}.{{sn.service_node_version[2]}}</span>
-      {%endif%}
+    {%if info.service_node%}{# SN tests are only conducted by SNs #}
+      <span>
+        <label{%if not sn.storage_server_reachable%} class="omg warning"{%endif%}>Storage server:</label>
+        {%if sn.storage_server_reachable_timestamp == 0%}
+          Not yet tested
+        {%else%}
+          {%if sn.storage_server_reachable%}Reachable{%else%}Not reachable{%endif%}
+          (as of {{sn.last_uptime_proof | from_timestamp | ago}} ago)
+        {%endif%}
+      </span>
+    {%endif%}
+
+    {%set pulse_voted = sn.pulse_participation | selectattr("voted") | list | length%}
+    {%set pulse_total = sn.pulse_participation | length%}
+    <span title="How many times the service node participated in Pulse block production from the last 8 blocks it was supposed to participate. (Service nodes may miss at most 4 before being decommissioned).">
+      <label{%if pulse_total >= 8 and pulse_voted < 4%} class="omg warning"{%endif%}>Pulse votes:</label>
+      {{pulse_voted}} / {{pulse_total}}
+    </span>
+
+    {%set cp_voted = sn.checkpoint_participation | selectattr("voted") | list | length%}
+    {%set cp_total = sn.checkpoint_participation | length%}
+    <span title="How many times the service node contributed a checkpoint vote from the last 8 blocks it was supposed to participate. (Service nodes may miss at most 4 before being decommissioned).">
+      <label{%if cp_total >= 8 and cp_voted < 4%} class="omg warning"{%endif%}>Checkpoint votes:</label>
+      {{cp_voted}} / {{cp_total}}
     </span>
 
   </h4>
