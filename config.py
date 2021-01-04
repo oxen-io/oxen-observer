@@ -1,7 +1,15 @@
+# Default configuration options for block observer.
+#
+# To override settings add `config.whatever = ...` into `local_config.py`; adding settings *here*
+# will often cause git conflicts.
+#
+# To override things that are specific to mainnet/testnet/etc. add `config.whatever = ...` lines
+# into `mainnet.py`/`testnet.py`/etc.
+
 
 # LMQ RPC endpoint of lokid; can be a unix socket 'ipc:///path/to/lokid.sock' (preferred) or a tcp
 # socket 'tcp://127.0.0.1:5678'.  Typically you want this running with admin permission.
-# This is actually set for each observer in the ...net.py script.
+# Leave this as None here, and set it for each observer in the mainnet.py/testnet.py/etc. script.
 lokid_rpc = None
 
 # Default blocks per page for the index.

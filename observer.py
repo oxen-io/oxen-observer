@@ -17,6 +17,7 @@ from pygments.formatters import HtmlFormatter
 import subprocess
 
 import config
+import local_config
 from lmq import FutureJSON, lmq_connection
 
 # Make a dict of config.* to pass to templating
