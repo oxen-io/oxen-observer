@@ -7,6 +7,8 @@ import json
 import sys
 import statistics
 import string
+import requests
+import time
 from base64 import b32encode, b16decode
 from werkzeug.routing import BaseConverter
 from pygments import highlight
@@ -750,3 +752,43 @@ def api_block(blkid=None, height=None):
         "status": block['status'],
         "data": data,
         })
+
+ticker_vs, ticker_vs_expires = [], None
+ticker_cache, ticker_cache_expires = {}, None
+@app.route('/api/prices')
+@app.route('/api/price/<fiat>')
+def api_price(fiat=None):
+    global ticker_cache, ticker_cache_expires, ticker_vs, ticker_vs_expires
+    # TODO: will need to change to 'oxen' when the ticker changes:
+    ticker = 'loki-network'
+
+    if not ticker_cache or not ticker_cache_expires or ticker_cache_expires < time.time():
+        if not ticker_vs_expires or ticker_vs_expires < time.time():
+            try:
+                x = requests.get("https://api.coingecko.com/api/v3/simple/supported_vs_currencies").json()
+                if x:
+                    ticker_vs = x
+                    ticker_vs_expires = time.time() + 300
+            except RuntimeError as e:
+                print("Failed to retrieve vs currencies: {}".format(e), file=sys.stderr)
+                # ignore failure because we might have an old value that is still usable
+
+        if not ticker_vs:
+            raise RuntimeError("Failed to retrieve CoinGecko currency list")
+
+        try:
+            x = requests.get("https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies={}".format(
+                ticker, ",".join(ticker_vs))).json()
+        except RuntimeError as e:
+            print("Failed to retrieve prices: {}".format(e), file=sys.stderr)
+
+        if not x or ticker not in x or not x[ticker]:
+            raise RuntimeError("Failed to retrieve prices from CoinGecko")
+        ticker_cache = x[ticker]
+        ticker_cache_expires = time.time() + 60
+
+    if fiat is None:
+        return flask.jsonify(ticker_cache)
+    else:
+        fiat = fiat.lower()
+        return flask.jsonify({ fiat: ticker_cache[fiat] } if fiat in ticker_cache else {})
