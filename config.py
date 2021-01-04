@@ -22,6 +22,6 @@ testnet_url='https://testnet.lokinet.dev'
 devnet_url='https://devnet.lokinet.dev'
 
 # Same as above, but these apply if we are on a .loki URL:
-lokinet_mainnet_url='http://kcpyawm9se7trdbzncimdi5t7st4p5mh9i1mg7gkpuubi4k4ku1y.loki'
-lokinet_testnet_url='http://testnet.kcpyawm9se7trdbzncimdi5t7st4p5mh9i1mg7gkpuubi4k4ku1y.loki'
+lokinet_mainnet_url='http://blocks.loki'
+lokinet_testnet_url='http://testnet.loki'
 lokinet_devnet_url='http://devnet.kcpyawm9se7trdbzncimdi5t7st4p5mh9i1mg7gkpuubi4k4ku1y.loki'
