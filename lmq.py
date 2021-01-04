@@ -9,7 +9,7 @@ def lmq_connection():
     global lmq, lokid
     if lmq is None:
         lmq = pylokimq.LokiMQ(pylokimq.LogLevel.warn)
-        lmq.max_message_size = 10*1024*1024
+        lmq.max_message_size = 200*1024*1024
         lmq.start()
     if lokid is None:
         lokid = lmq.connect_remote(config.lokid_rpc)
