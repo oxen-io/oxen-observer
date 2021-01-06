@@ -219,7 +219,7 @@ def get_quorums(quorums_future):
     return quo
 
 def get_mempool_future(lmq, lokid):
-    return FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5, args={"tx_extra":True})
+    return FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5, args={"tx_extra":True, "stake_info":True})
 
 def parse_mempool(mempool_future):
     # mempool RPC return values are about as nasty as can be.  For each mempool tx, we get back
@@ -382,6 +382,7 @@ def tx_req(lmq, lokid, txids, cache_key='single', **kwargs):
                 "decode_as_json": True,
                 "tx_extra": True,
                 "prune": True,
+                "stake_info": True,
                 },
             **kwargs)
 
