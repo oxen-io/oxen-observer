@@ -16,15 +16,15 @@
         {%for sn in (awaiting_sns | sort(attribute='portions_for_operator,contribution_open,contribution_required,service_node_pubkey'))[:limit_awaiting]%}
             <tr>
                 {%include 'include/sn_kcf.html'%}
-                <td>{{sn.total_contributed | loki(tag=false, fixed=true)}}</td>
+                <td>{{sn.total_contributed | oxen(tag=false, fixed=true)}}</td>
                 {%if sn.total_reserved >= sn.staking_requirement%}
                     <td title="All remaining contribution room is reserved for specific contributors">
-                        ⛔ {{sn.contribution_open | loki(tag=false, fixed=true)}}
+                        ⛔ {{sn.contribution_open | oxen(tag=false, fixed=true)}}
                     </td>
                 {%else%}
-                    <td>{{sn.contribution_open | loki(tag=false, fixed=true)}}</td>
+                    <td>{{sn.contribution_open | oxen(tag=false, fixed=true)}}</td>
                 {%endif%}
-                <td>{{ (0 if sn.num_contributions >= 4 else (sn.contribution_open / (4 - sn.num_contributions)) | round(method='ceil')) | loki(tag=false, fixed=true) }}</td>
+                <td>{{ (0 if sn.num_contributions >= 4 else (sn.contribution_open / (4 - sn.num_contributions)) | round(method='ceil')) | oxen(tag=false, fixed=true) }}</td>
                 <td>
                     {%if sn.requested_unlock_height%}
                         <span title="Service Node unlock in progress (unlocks at block {{sn.requested_unlock_height}})">🔓</span>

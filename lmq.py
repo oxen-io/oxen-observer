@@ -4,16 +4,16 @@ import json
 import sys
 from datetime import datetime, timedelta
 
-lmq, lokid = None, None
+lmq, oxend = None, None
 def lmq_connection():
-    global lmq, lokid
+    global lmq, oxend
     if lmq is None:
         lmq = pylokimq.LokiMQ(pylokimq.LogLevel.warn)
         lmq.max_message_size = 200*1024*1024
         lmq.start()
-    if lokid is None:
-        lokid = lmq.connect_remote(config.lokid_rpc)
-    return (lmq, lokid)
+    if oxend is None:
+        oxend = lmq.connect_remote(config.oxend_rpc)
+    return (lmq, oxend)
 
 cached = {}
 cached_args = {}
@@ -31,7 +31,7 @@ class FutureJSON():
     result in unbounded memory growth.
 
     lmq - the lmq object
-    lokid - the lokid lmq connection id object
+    oxend - the oxend lmq connection id object
     endpoint - the lmq endpoint, e.g. 'rpc.get_info'
     cache_seconds - how long to cache the response; can be None to not cache it at all
     cache_key - fixed string to enable different caches of the same endpoint
@@ -40,7 +40,7 @@ class FutureJSON():
     timeout - maximum time to spend waiting for a reply
     """
 
-    def __init__(self, lmq, lokid, endpoint, cache_seconds=3, *, cache_key='', args=None, fail_okay=False, timeout=10):
+    def __init__(self, lmq, oxend, endpoint, cache_seconds=3, *, cache_key='', args=None, fail_okay=False, timeout=10):
         self.endpoint = endpoint
         self.cache_key = self.endpoint + cache_key
         self.fail_okay = fail_okay
@@ -53,7 +53,7 @@ class FutureJSON():
         else:
             self.json = None
             self.args = args
-            self.future = lmq.request_future(lokid, self.endpoint, [] if self.args is None else [self.args], timeout=timeout)
+            self.future = lmq.request_future(oxend, self.endpoint, [] if self.args is None else [self.args], timeout=timeout)
         self.cache_seconds = cache_seconds
 
     def get(self):

@@ -1,6 +1,6 @@
-# Loki Observer OMG block explorer
+# Oxen Observer OMG block explorer
 
-Block explorer using Loki 8+ LMQ RPC interface that does everything through RPC requests.  Sexy,
+Block explorer using Oxen 8+ LMQ RPC interface that does everything through RPC requests.  Sexy,
 awesome, safe.
 
 ## Prerequisite packages 
@@ -23,7 +23,7 @@ Quick and dirty setup instructions for now:
 (Note that we require a very recent python3-jinja package (2.11+), which may not be installed by the
 above.)
 
-You'll also need to run lokid with `--lmq-local-control ipc:///path/to/loki-observer/mainnet.sock`.
+You'll also need to run oxend with `--lmq-local-control ipc:///path/to/loki-observer/mainnet.sock`.
 
 ## Running in debug mode
 
@@ -60,13 +60,13 @@ Create a "vassal" config for loki-observer, `/etc/uwsgi-emperor/vassals/loki-obs
     logger = file:logfile=/path/to/loki-observer/mainnet.log
 
 Set ownership of this user to whatever use you want it to run as, and set the group to `_loki` (so
-that it can open the lokid unix socket):
+that it can open the oxend unix socket):
 
     chown MYUSERNAME:_loki /etc/uwsgi-emperor/vassals/loki-observer.ini
 
 In the loki-observer/mainnet.py, set:
 
-    config.lokid_rpc = 'ipc:///var/lib/loki/lokid.sock'
+    config.oxend_rpc = 'ipc:///var/lib/loki/oxend.sock'
 
 and finally, proxy requests from the webserver to the wsgi socket.  For Apache I do this with:
 
@@ -88,4 +88,4 @@ make uwsgi restart (for example because you are changing things) then it is suff
 apache2/uwsgi-emperor layers).
 
 If you want to set up a testnet or devnet observer the procedure is essentially the same, but
-using testnet.py or devnet.py pointing to a lokid.sock from a testnet or devnet lokid.
+using testnet.py or devnet.py pointing to a oxend.sock from a testnet or devnet oxend.

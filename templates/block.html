@@ -52,19 +52,19 @@ Validator bits: {{"{:011b}".format(block.info.pulse.validator_bitset)}}"><label>
         {%set sum_burned = transactions | selectattr('extra.burn_amount') | sum(attribute='extra.burn_amount') %}
         {%set sum_fees = transactions | selectattr('info.rct_signatures') | selectattr('info.rct_signatures.txnFee') | sum(attribute='info.rct_signatures.txnFee') - sum_burned%}
 
-        <span title="{{(block_header.reward - sum_fees) | loki(fixed=True)}} created in this block.{%if sum_fees > 0%}
+        <span title="{{(block_header.reward - sum_fees) | oxen(fixed=True)}} created in this block.{%if sum_fees > 0%}
 
-Note that this value does not include earned transaction fees ({{sum_fees | loki(fixed=True, decimals=4)}}){%endif%}"><label>Block reward:</label>
-        {{(block_header.reward - sum_fees) | loki(decimals=4)}}</span>
+Note that this value does not include earned transaction fees ({{sum_fees | oxen(fixed=True, decimals=4)}}){%endif%}"><label>Block reward:</label>
+        {{(block_header.reward - sum_fees) | oxen(decimals=4)}}</span>
 
         {%if sum_fees > 0%}
-            <span title="Earned TX fees: {{sum_fees | loki(fixed=True)}}"><label>Block TX fees:</label> {{ sum_fees | loki(fixed=True, decimals=4) }}</span>
+            <span title="Earned TX fees: {{sum_fees | oxen(fixed=True)}}"><label>Block TX fees:</label> {{ sum_fees | oxen(fixed=True, decimals=4) }}</span>
         {%endif%}
 
         {%if sum_burned > 0%}
-            <span title="{{sum_burned | loki(fixed=True)}} burned in the transactions included in block">
+            <span title="{{sum_burned | oxen(fixed=True)}} burned in the transactions included in block">
                 <label>Burned fees:</label>
-                {{sum_burned | loki(decimals=4)}} <span class="icon">🔥</span>
+                {{sum_burned | oxen(decimals=4)}} <span class="icon">🔥</span>
             </span>
         {%endif%}
 
@@ -90,7 +90,7 @@ Note that this value does not include earned transaction fees ({{sum_fees | loki
         </tr>
         <tr>
             <td><a href="/tx/{{miner_tx.tx_hash}}">{{miner_tx.tx_hash}}</a></td>
-            <td>{{miner_tx.info.vout | sum(attribute='amount') | loki}}</td>
+            <td>{{miner_tx.info.vout | sum(attribute='amount') | oxen}}</td>
             <td>{{miner_tx.size}}</td>
             <td>{{miner_tx.info.version}}</td>
         </tr>

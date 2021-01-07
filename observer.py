@@ -115,10 +115,10 @@ def format_si(value):
         i += 1
     return filter_round(value) + '{}'.format(si_suffix[i])
 
-@app.template_filter('loki')
-def format_loki(atomic, tag=True, fixed=False, decimals=9, zero=None):
+@app.template_filter('oxen')
+def format_oxen(atomic, tag=True, fixed=False, decimals=9, zero=None):
     """Formats an atomic current value as a human currency value.
-    tag - if False then don't append " LOKI"
+    tag - if False then don't append " OXEN"
     fixed - if True then don't strip insignificant trailing 0's and '.'
     decimals - at how many decimal we should round; the default is full precision
     fixed - if specified, replace 0 with this string
@@ -130,7 +130,7 @@ def format_loki(atomic, tag=True, fixed=False, decimals=9, zero=None):
         if not fixed and decimals > 0:
             disp = disp.rstrip('0').rstrip('.')
     if tag:
-        disp += ' LOKI'
+        disp += ' OXEN'
     return disp
 
 # For some inexplicable reason some hex fields are provided as array of byte integer values rather
@@ -169,8 +169,8 @@ def css():
     return flask.send_from_directory('static', 'style.css')
 
 
-def get_sns_future(lmq, lokid):
-    return FutureJSON(lmq, lokid, 'rpc.get_service_nodes', 5,
+def get_sns_future(lmq, oxend):
+    return FutureJSON(lmq, oxend, 'rpc.get_service_nodes', 5,
             args={
                 'all': False,
                 'fields': { x: True for x in ('service_node_pubkey', 'requested_unlock_height', 'last_reward_block_height',
@@ -200,8 +200,8 @@ def get_sns(sns_future, info_future):
     return awaiting_sns, active_sns, inactive_sns
 
 
-def get_quorums_future(lmq, lokid, height):
-    return FutureJSON(lmq, lokid, 'rpc.get_quorum_state', 30,
+def get_quorums_future(lmq, oxend, height):
+    return FutureJSON(lmq, oxend, 'rpc.get_quorum_state', 30,
             args={ 'start_height': height-55, 'end_height': height })
 
 
@@ -218,8 +218,8 @@ def get_quorums(quorums_future):
             print("Something getting wrong in quorums: found unknown quorum_type={}".format(q['quorum_type']), file=sys.stderr)
     return quo
 
-def get_mempool_future(lmq, lokid):
-    return FutureJSON(lmq, lokid, 'rpc.get_transaction_pool', 5, args={"tx_extra":True, "stake_info":True})
+def get_mempool_future(lmq, oxend):
+    return FutureJSON(lmq, oxend, 'rpc.get_transaction_pool', 5, args={"tx_extra":True, "stake_info":True})
 
 def parse_mempool(mempool_future):
     # mempool RPC return values are about as nasty as can be.  For each mempool tx, we get back
@@ -257,19 +257,19 @@ def template_globals():
 @app.route('/autorefresh/<int:refresh>')
 @app.route('/')
 def main(refresh=None, page=0, per_page=None, first=None, last=None):
-    lmq, lokid = lmq_connection()
-    inforeq = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    stake = FutureJSON(lmq, lokid, 'rpc.get_staking_requirement', 10)
-    base_fee = FutureJSON(lmq, lokid, 'rpc.get_fee_estimate', 10)
-    hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
-    mempool = get_mempool_future(lmq, lokid)
-    sns = get_sns_future(lmq, lokid)
-    checkpoints = FutureJSON(lmq, lokid, 'rpc.get_checkpoints', args={"count": 3})
+    lmq, oxend = lmq_connection()
+    inforeq = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    stake = FutureJSON(lmq, oxend, 'rpc.get_staking_requirement', 10)
+    base_fee = FutureJSON(lmq, oxend, 'rpc.get_fee_estimate', 10)
+    hfinfo = FutureJSON(lmq, oxend, 'rpc.hard_fork_info', 10)
+    mempool = get_mempool_future(lmq, oxend)
+    sns = get_sns_future(lmq, oxend)
+    checkpoints = FutureJSON(lmq, oxend, 'rpc.get_checkpoints', args={"count": 3})
 
-    # This call is slow the first time it gets called in lokid but will be fast after that, so call
+    # This call is slow the first time it gets called in oxend but will be fast after that, so call
     # it with a very short timeout.  It's also an admin-only command, so will always fail if we're
     # using a restricted RPC interface.
-    coinbase = FutureJSON(lmq, lokid, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
+    coinbase = FutureJSON(lmq, oxend, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
             args={"height":0, "count":2**31-1})
 
     custom_per_page = ''
@@ -298,7 +298,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
         end_height = max(0, height - per_page*page - 1)
         start_height = max(0, end_height - per_page + 1)
 
-    blocks = FutureJSON(lmq, lokid, 'rpc.get_block_headers_range', cache_key='main', args={
+    blocks = FutureJSON(lmq, oxend, 'rpc.get_block_headers_range', cache_key='main', args={
         'start_height': start_height,
         'end_height': end_height,
         'get_tx_hashes': True,
@@ -313,7 +313,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
             txids.append(b['miner_tx_hash'])
             if 'tx_hashes' in b:
                 txids += b['tx_hashes']
-        txs = parse_txs(tx_req(lmq, lokid, txids, cache_key='mempool').get())
+        txs = parse_txs(tx_req(lmq, oxend, txids, cache_key='mempool').get())
         i = 0
         for tx in txs:
             # TXs should come back in the same order so we can just skip ahead one when the block
@@ -353,9 +353,9 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
 
 @app.route('/txpool')
 def mempool():
-    lmq, lokid = lmq_connection()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    mempool = get_mempool_future(lmq, lokid)
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    mempool = get_mempool_future(lmq, oxend)
 
     return flask.render_template('mempool.html',
             info=info.get(),
@@ -364,9 +364,9 @@ def mempool():
 
 @app.route('/service_nodes')
 def sns():
-    lmq, lokid = lmq_connection()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    awaiting, active, inactive = get_sns(get_sns_future(lmq, lokid), info)
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    awaiting, active, inactive = get_sns(get_sns_future(lmq, oxend), info)
 
     return flask.render_template('service_nodes.html',
         info=info.get(),
@@ -375,8 +375,8 @@ def sns():
         inactive_sns=inactive,
         )
 
-def tx_req(lmq, lokid, txids, cache_key='single', **kwargs):
-    return FutureJSON(lmq, lokid, 'rpc.get_transactions', cache_seconds=10, cache_key=cache_key,
+def tx_req(lmq, oxend, txids, cache_key='single', **kwargs):
+    return FutureJSON(lmq, oxend, 'rpc.get_transactions', cache_seconds=10, cache_key=cache_key,
             args={
                 "txs_hashes": txids,
                 "decode_as_json": True,
@@ -386,38 +386,38 @@ def tx_req(lmq, lokid, txids, cache_key='single', **kwargs):
                 },
             **kwargs)
 
-def sn_req(lmq, lokid, pubkey, **kwargs):
-    return FutureJSON(lmq, lokid, 'rpc.get_service_nodes', 5, cache_key='single',
+def sn_req(lmq, oxend, pubkey, **kwargs):
+    return FutureJSON(lmq, oxend, 'rpc.get_service_nodes', 5, cache_key='single',
             args={"service_node_pubkeys": [pubkey]}, **kwargs
         )
 
 
-def block_header_req(lmq, lokid, hash_or_height, **kwargs):
+def block_header_req(lmq, oxend, hash_or_height, **kwargs):
     if isinstance(hash_or_height, int) or (len(hash_or_height) <= 10 and hash_or_height.isdigit()):
-        return FutureJSON(lmq, lokid, 'rpc.get_block_header_by_height', cache_key='single',
+        return FutureJSON(lmq, oxend, 'rpc.get_block_header_by_height', cache_key='single',
                 args={ "height": int(hash_or_height) }, **kwargs)
     else:
-        return FutureJSON(lmq, lokid, 'rpc.get_block_header_by_hash', cache_key='single',
+        return FutureJSON(lmq, oxend, 'rpc.get_block_header_by_hash', cache_key='single',
                 args={ 'hash': hash_or_height }, **kwargs)
 
 
-def block_with_txs_req(lmq, lokid, hash_or_height, **kwargs):
+def block_with_txs_req(lmq, oxend, hash_or_height, **kwargs):
     args = { 'get_tx_hashes': True }
     if isinstance(hash_or_height, int) or (len(hash_or_height) <= 10 and hash_or_height.isdigit()):
         args['height'] = int(hash_or_height)
     else:
         args['hash'] = hash_or_height
 
-    return FutureJSON(lmq, lokid, 'rpc.get_block', cache_key='single', args=args, **kwargs)
+    return FutureJSON(lmq, oxend, 'rpc.get_block', cache_key='single', args=args, **kwargs)
 
 
 @app.route('/service_node/<hex64:pubkey>')  # For backwards compatibility with old explorer URLs
 @app.route('/sn/<hex64:pubkey>')
 def show_sn(pubkey):
-    lmq, lokid = lmq_connection()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
-    sn = sn_req(lmq, lokid, pubkey).get()
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    hfinfo = FutureJSON(lmq, oxend, 'rpc.hard_fork_info', 10)
+    sn = sn_req(lmq, oxend, pubkey).get()
 
     if 'service_node_states' not in sn or not sn['service_node_states']:
         return flask.render_template('not_found.html',
@@ -452,7 +452,7 @@ def parse_txs(txs_rpc):
 
     for tx in txs_rpc['txs']:
         if 'info' not in tx:
-            # We have serialized JSON data inside a field in the JSON, because of lokid's
+            # We have serialized JSON data inside a field in the JSON, because of oxend's
             # multiple incompatible JSON generators 🤮:
             tx['info'] = json.loads(tx["as_json"])
             del tx['as_json']
@@ -462,7 +462,7 @@ def parse_txs(txs_rpc):
     return txs_rpc['txs']
 
 
-def get_block_txs_future(lmq, lokid, block):
+def get_block_txs_future(lmq, oxend, block):
     hashes = []
     if 'tx_hashes' in block:
         hashes += block['tx_hashes']
@@ -475,7 +475,7 @@ def get_block_txs_future(lmq, lokid, block):
         except Exception as e:
             print("Something getting wrong: cannot parse block json for block {}: {}".format(block_height, e), file=sys.stderr)
 
-    return tx_req(lmq, lokid, hashes, cache_key='block')
+    return tx_req(lmq, oxend, hashes, cache_key='block')
 
 
 @app.route('/block/<int:height>')
@@ -483,15 +483,15 @@ def get_block_txs_future(lmq, lokid, block):
 @app.route('/block/<hex64:hash>')
 @app.route('/block/<hex64:hash>/<int:more_details>')
 def show_block(height=None, hash=None, more_details=False):
-    lmq, lokid = lmq_connection()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    hfinfo = FutureJSON(lmq, oxend, 'rpc.hard_fork_info', 10)
     if height is not None:
         val = height
     elif hash is not None:
         val = hash
 
-    block = None if val is None else block_with_txs_req(lmq, lokid, val).get()
+    block = None if val is None else block_with_txs_req(lmq, oxend, val).get()
     if block is None:
         return flask.render_template("not_found.html",
                 info=info.get(),
@@ -503,10 +503,10 @@ def show_block(height=None, hash=None, more_details=False):
 
     next_block = None
     block_height = block['block_header']['height']
-    txs = get_block_txs_future(lmq, lokid, block)
+    txs = get_block_txs_future(lmq, oxend, block)
 
     if info.get()['height'] > 1 + block_height:
-        next_block = block_header_req(lmq, lokid, '{}'.format(block_height + 1))
+        next_block = block_header_req(lmq, oxend, '{}'.format(block_height + 1))
 
     if more_details:
         formatter = HtmlFormatter(cssclass="syntax-highlight", style="native")
@@ -534,17 +534,17 @@ def show_block(height=None, hash=None, more_details=False):
 
 @app.route('/block/latest')
 def show_block_latest():
-    lmq, lokid = lmq_connection()
-    height = FutureJSON(lmq, lokid, 'rpc.get_info', 1).get()['height'] - 1
+    lmq, oxend = lmq_connection()
+    height = FutureJSON(lmq, oxend, 'rpc.get_info', 1).get()['height'] - 1
     return flask.redirect(flask.url_for('show_block', height=height), code=302)
 
 
 @app.route('/tx/<hex64:txid>')
 @app.route('/tx/<hex64:txid>/<int:more_details>')
 def show_tx(txid, more_details=False):
-    lmq, lokid = lmq_connection()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    txs = tx_req(lmq, lokid, [txid]).get()
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    txs = tx_req(lmq, oxend, [txid]).get()
 
     if 'txs' not in txs or not txs['txs']:
         return flask.render_template('not_found.html',
@@ -557,7 +557,7 @@ def show_tx(txid, more_details=False):
     # If this is a state change, see if we have the quorum stored to provide context
     testing_quorum = None
     if tx['info']['version'] >= 4 and 'sn_state_change' in tx['extra']:
-        testing_quorum = FutureJSON(lmq, lokid, 'rpc.get_quorum_state', 60, cache_key='tx_state_change',
+        testing_quorum = FutureJSON(lmq, oxend, 'rpc.get_quorum_state', 60, cache_key='tx_state_change',
                 args={ 'quorum_type': 0, 'start_height': tx['extra']['sn_state_change']['height'] })
 
     kindex_info = {} # { amount => { keyindex => {output-info} } }
@@ -581,14 +581,14 @@ def show_tx(txid, more_details=False):
                     del inp['key']['key_offsets']
 
             outs_req = [{"amount":inp['key']['amount'], "index":ki} for inp in tx['info']['vin'] for ki in inp['key']['key_indices']]
-            outputs = FutureJSON(lmq, lokid, 'rpc.get_outs', args={
+            outputs = FutureJSON(lmq, oxend, 'rpc.get_outs', args={
                 'get_txid': True,
                 'outputs': outs_req,
                 }).get()
             if outputs and 'outs' in outputs and len(outputs['outs']) == len(outs_req):
                 outputs = outputs['outs']
                 # Also load block details for all of those outputs:
-                block_info_req = FutureJSON(lmq, lokid, 'rpc.get_block_header_by_height', args={
+                block_info_req = FutureJSON(lmq, oxend, 'rpc.get_block_header_by_height', args={
                     'heights': [o["height"] for o in outputs]
                 })
                 i = 0
@@ -637,9 +637,9 @@ def show_tx(txid, more_details=False):
 
 @app.route('/quorums')
 def show_quorums():
-    lmq, lokid = lmq_connection()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    quos = get_quorums_future(lmq, lokid, info.get()['height'])
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    quos = get_quorums_future(lmq, oxend, info.get()['height'])
 
     return flask.render_template('quorums.html',
             info=info.get(),
@@ -649,8 +649,8 @@ def show_quorums():
 
 @app.route('/search')
 def search():
-    lmq, lokid = lmq_connection()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
     val = (flask.request.args.get('value') or '').strip()
 
     if val and len(val) < 10 and val.isdigit(): # Block height
@@ -664,9 +664,9 @@ def search():
                 )
 
     # Initiate all the lookups at once, then redirect to whichever one responds affirmatively
-    snreq = sn_req(lmq, lokid, val)
-    blreq = block_header_req(lmq, lokid, val, fail_okay=True)
-    txreq = tx_req(lmq, lokid, [val])
+    snreq = sn_req(lmq, oxend, val)
+    blreq = block_header_req(lmq, oxend, val, fail_okay=True)
+    txreq = tx_req(lmq, oxend, [val])
 
     sn = snreq.get()
     if 'service_node_states' in sn and sn['service_node_states']:
@@ -686,9 +686,9 @@ def search():
 
 @app.route('/api/networkinfo')
 def api_networkinfo():
-    lmq, lokid = lmq_connection()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    hfinfo = FutureJSON(lmq, lokid, 'rpc.hard_fork_info', 10)
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    hfinfo = FutureJSON(lmq, oxend, 'rpc.hard_fork_info', 10)
 
     info = info.get()
     data = {**info}
@@ -700,9 +700,9 @@ def api_networkinfo():
 
 @app.route('/api/emission')
 def api_emission():
-    lmq, lokid = lmq_connection()
-    info = FutureJSON(lmq, lokid, 'rpc.get_info', 1)
-    coinbase = FutureJSON(lmq, lokid, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    coinbase = FutureJSON(lmq, oxend, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
             args={"height":0, "count":2**31-1}).get()
     if not coinbase:
         return flask.jsonify(None)
@@ -722,8 +722,8 @@ def api_emission():
 
 @app.route('/api/circulating_supply')
 def api_circulating_supply():
-    lmq, lokid = lmq_connection()
-    coinbase = FutureJSON(lmq, lokid, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
+    lmq, oxend = lmq_connection()
+    coinbase = FutureJSON(lmq, oxend, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
             args={"height":0, "count":2**31-1}).get()
     return flask.jsonify((coinbase["emission_amount"] - coinbase["burn_amount"]) // 1000000000 if coinbase else None)
 
@@ -731,8 +731,8 @@ def api_circulating_supply():
 # FIXME: need better error handling here
 @app.route('/api/transaction/<hex64:txid>')
 def api_tx(txid):
-    lmq, lokid = lmq_connection()
-    tx = tx_req(lmq, lokid, [txid]).get()
+    lmq, oxend = lmq_connection()
+    tx = tx_req(lmq, oxend, [txid]).get()
     txs = parse_txs(tx)
     return flask.jsonify({
         "status": tx['status'],
@@ -742,9 +742,9 @@ def api_tx(txid):
 @app.route('/api/block/<int:height>')
 @app.route('/api/block/<hex64:blkid>')
 def api_block(blkid=None, height=None):
-    lmq, lokid = lmq_connection()
-    block = block_with_txs_req(lmq, lokid, blkid if blkid is not None else height).get()
-    txs = get_block_txs_future(lmq, lokid, block)
+    lmq, oxend = lmq_connection()
+    block = block_with_txs_req(lmq, oxend, blkid if blkid is not None else height).get()
+    txs = get_block_txs_future(lmq, oxend, block)
 
     if 'block_header' in block:
         data = block['block_header'].copy()
@@ -761,7 +761,7 @@ ticker_cache, ticker_cache_expires = {}, None
 @app.route('/api/price/<fiat>')
 def api_price(fiat=None):
     global ticker_cache, ticker_cache_expires, ticker_vs, ticker_vs_expires
-    # TODO: will need to change to 'oxen' when the ticker changes:
+    # TODO: will need to change to 'oxen' when/if the ticker changes:
     ticker = 'loki-network'
 
     if not ticker_cache or not ticker_cache_expires or ticker_cache_expires < time.time():

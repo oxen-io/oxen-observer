@@ -41,7 +41,7 @@
       <a href="/block/{{sn.state_height}}">{{sn.state_height}}</a>
     </span>
 
-    <span><label>Staking requirement:</label> {{sn.staking_requirement | loki}}</span>
+    <span><label>Staking requirement:</label> {{sn.staking_requirement | oxen}}</span>
 
     {%if not solo_node%}
       <span><label>Operator fee:</label> {{(sn.portions_for_operator / portions_base * 100) | round(3) | chop0}}%</span>
@@ -50,12 +50,12 @@
     <span><label>Total contributed:</label>
       {%if sn.total_contributed >= sn.staking_requirement%}100%
       {%else%} 
-      {{sn.total_contributed | loki}} ({{(sn.total_contributed / sn.staking_requirement * 100) | round(2) | chop0}}%)
+      {{sn.total_contributed | oxen}} ({{(sn.total_contributed / sn.staking_requirement * 100) | round(2) | chop0}}%)
       {%endif%}
     </span>
 
     {%if sn.total_reserved != sn.total_contributed%}
-      <span><label>Total reserved:</label> {{sn.total_reserved | loki}}</span>
+      <span><label>Total reserved:</label> {{sn.total_reserved | oxen}}</span>
     {%endif%}
 
     <span>
@@ -132,10 +132,10 @@
     {%endif%}
     </p>
   {%else%}
-    <p class="sn-awaiting">Awaiting registration.  This service node has <span class="loki required">{{(sn.staking_requirement - sn.total_contributed) | loki}}</span>
+    <p class="sn-awaiting">Awaiting registration.  This service node has <span class="oxen required">{{(sn.staking_requirement - sn.total_contributed) | oxen}}</span>
     remaining to be contributed.
     {%if sn.num_open_spots > 0%}
-      The minimum required stake contribution is <span class="loki required">{{((sn.staking_requirement - sn.total_reserved) / sn.num_open_spots) | loki}}</span>.
+      The minimum required stake contribution is <span class="oxen required">{{((sn.staking_requirement - sn.total_reserved) / sn.num_open_spots) | oxen}}</span>.
     {%endif%}
     </p>
   {%endif%}
@@ -166,12 +166,12 @@
         {%for c in sn.contributors%}
           <tr>
             <td>{{c.address}}</td>
-            <td>{{c.amount | loki}}
+            <td>{{c.amount | oxen}}
               {%-if c.locked_contributions and c.locked_contributions|length > 1%}
                 ({{c.locked_contributions|length}} contributions)
               {%endif-%}
             </td>
-            <td>{{c.reserved | loki}}</td>
+            <td>{{c.reserved | oxen}}</td>
           </tr>
         {%endfor%}
       </tbody>

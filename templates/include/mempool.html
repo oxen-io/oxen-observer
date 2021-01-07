@@ -30,7 +30,7 @@
                 <td><a href="/tx/{{tx.id_hash}}">{{tx.id_hash}}</a></td>
                 <td>
                     {%if 'rct_signatures' in tx.info%}
-                        {{fee.display(tx)}} / {{(tx.info.rct_signatures.txnFee * 1000 / tx.blob_size) | loki(tag=false, decimals=4)}}
+                        {{fee.display(tx)}} / {{(tx.info.rct_signatures.txnFee * 1000 / tx.blob_size) | oxen(tag=false, decimals=4)}}
                     {%else%}
                         N/A
                     {%endif%}

@@ -16,7 +16,7 @@
 
             <tr>
                 {%include 'include/sn_kcf.html'%}
-                <td>{{sn.staking_requirement | loki(tag=false, fixed=true)}}</td>
+                <td>{{sn.staking_requirement | oxen(tag=false, fixed=true)}}</td>
                 <td>{{sn.last_reward_block_height}}</td>
                 <td>{{sn.last_uptime_proof | from_timestamp | ago if sn.last_uptime_proof > 0 else "Not Received"}}</td>
                 <td>

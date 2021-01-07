@@ -1,3 +1,3 @@
 from observer import app, config
 
-config.lokid_rpc = 'ipc://lokid/devnet.sock'
+config.oxend_rpc = 'ipc://oxend/devnet.sock'

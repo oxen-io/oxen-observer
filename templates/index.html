@@ -74,14 +74,14 @@
                     <span><label>Network difficulty:</label> {{info.difficulty}}</span>
                     <span><label>Hash rate:</label> ~{{(info.difficulty / info.target) | si }}H/s</span>
                 {% endif %}
-                <span><label>Staking requirement:</label> {{stake.staking_requirement | loki}}</span>
-                <span title="{{(2500 * fees.fee_per_byte + 2*fees.fee_per_output) | loki}} for a typical simple transaction (~2.5kB, 2 outputs)">
+                <span><label>Staking requirement:</label> {{stake.staking_requirement | oxen}}</span>
+                <span title="{{(2500 * fees.fee_per_byte + 2*fees.fee_per_output) | oxen}} for a typical simple transaction (~2.5kB, 2 outputs)">
                     <label>Base fee:</label>
-                    {{fees.fee_per_output | loki}}/output + {{(fees.fee_per_byte * 1000) | loki}}/kB
+                    {{fees.fee_per_output | oxen}}/output + {{(fees.fee_per_byte * 1000) | oxen}}/kB
                 </span>
-                <span title="{{(2500 * fees.blink_fee_per_byte + 2*fees.blink_fee_per_output) | loki}} for a typical simple blink transaction (~2.5kB, 2 outputs)">
+                <span title="{{(2500 * fees.blink_fee_per_byte + 2*fees.blink_fee_per_output) | oxen}} for a typical simple blink transaction (~2.5kB, 2 outputs)">
                     <label>Blink fee:</label>
-                    {{fees.blink_fee_per_output | loki}}/output + {{(fees.blink_fee_per_byte * 1000) | loki}}/kB
+                    {{fees.blink_fee_per_output | oxen}}/output + {{(fees.blink_fee_per_byte * 1000) | oxen}}/kB
                 </span>
                 <span title="{{(info.block_size_limit / 2) | si}}B soft limit, {{info.block_size_limit | si}}B hard limit. Blocks may include TXes up to the soft limit without penalty and incur increasing reward penalties as they approach the hard limit.">
                     <label>Block size limit:</label>
@@ -96,10 +96,10 @@
                 {% if not emission or emission.status == 'BUSY' %}
                     (still calculating...)</span>
                 {% elif emission.status == 'OK' %}
-                    {{(emission.emission_amount - emission.burn_amount) | loki}}</span>
-                <span><label>(Coinbase:</label> {{emission.emission_amount | loki}}</span>
-                <span><label>Fees:</label> {{emission.fee_amount | loki}}</span>
-                <span><label>Burned:</label> {{emission.burn_amount | loki}}<label>).</label></span>
+                    {{(emission.emission_amount - emission.burn_amount) | oxen}}</span>
+                <span><label>(Coinbase:</label> {{emission.emission_amount | oxen}}</span>
+                <span><label>Fees:</label> {{emission.fee_amount | oxen}}</span>
+                <span><label>Burned:</label> {{emission.burn_amount | oxen}}<label>).</label></span>
                 {%endif%}
             <p style="padding: 0px; margin-top: 2px; font-size: 0.9em">
             * — Circulating supply may exclude any currently, publicised locked tokens, otherwise it is equal to the Coinbase minus burned coins.
@@ -117,7 +117,7 @@
             <span>🚫 Deregistration</span>
             <span>📋 IP Change Penalty</span>
             <span>🔓 Stake Unlock</span>
-            <span>🎫 Loki Name System Purchase</span>
+            <span>🎫 Oxen Name System Purchase</span>
             <span>💾 LNS Update</span>
         </h4>
     </div>
@@ -172,7 +172,7 @@
                 <td>{{symbol.display(b.txs[0])}}</td>
                 <td><a href="/tx/{{b.miner_tx_hash}}">{{b.miner_tx_hash}}</a></td>
                 <td>{{fee.display(b.txs[0])}}</td>
-                <td>{{b.reward | loki(tag=False, fixed=True, decimals=2)}}</td>
+                <td>{{b.reward | oxen(tag=False, fixed=True, decimals=2)}}</td>
                 <td>0/{{b.txs[0].info.vout | length}}</td>
                 <td>{{b.txs[0].size | si}}</td>
               </tr>

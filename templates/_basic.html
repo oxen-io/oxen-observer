@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   {% block head %}
-      <title>{% block title %}{% endblock %}Loki{{' TESTNET' if info and info.testnet else ' DEVNET' if info and info.devnet else ''}}
+      <title>{% block title %}{% endblock %}Oxen{{' TESTNET' if info and info.testnet else ' DEVNET' if info and info.devnet else ''}}
   Blockchain Explorer</title>
     <link rel="stylesheet" type="text/css" href="/style.css">
     {% if refresh %}
@@ -16,7 +16,7 @@
 <div id="header" class="Wrapper">
     {% block header %}
     <div id="header-content">
-        <h1 class="Header"><a href="/">Loki
+        <h1 class="Header"><a href="/">Oxen
                 {%if info and info.testnet%}
                     <span style="color:#ff6b62">Testnet</span>
                 {%elif info and info.devnet%}
@@ -41,7 +41,7 @@
     <p style="margin-top:10px">
         <a href="https://github.com/loki-project/loki-observer">Source Code</a>
         | Explorer Revision: {{server.revision}}
-        | Loki Version: {{info.version}}
+        | Oxen Version: {{info.version}}
     </p>
     {% endblock %}
 </div>
