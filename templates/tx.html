@@ -179,7 +179,7 @@ This tx does not includes a vote from this testing service node (only 7 votes ar
             <div class="TitleDivider"></div>
             <p><label>Service Node Public Key:</label> {{tx.extra.sn_pubkey}}</p>
             <p><label>Contributor Address:</label> {{tx.extra.sn_contributor}}</p>
-            <p><label>Contribution Amount:</label> {{tx.stake_amount | oxen}}</p>
+            <p><label>Contribution Amount:</label> {%if 'stake_amount' in tx%}{{tx.stake_amount | oxen}}{%else%}???{%endif%}</p>
         {% endif %}
     {% endif %}
 
