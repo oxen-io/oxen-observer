@@ -620,6 +620,7 @@ def show_tx(txid, more_details=False):
 
     if testing_quorum:
         testing_quorum = testing_quorum.get()
+    if testing_quorum:
         if 'quorums' in testing_quorum and testing_quorum['quorums']:
             testing_quorum = testing_quorum['quorums'][0]['quorum']
         else:
