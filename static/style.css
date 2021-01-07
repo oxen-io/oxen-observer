@@ -2,7 +2,7 @@ body {
     margin: 0;
     padding: 0;
     font-size: 80%;
-    background-color: #1a1a1a;
+    background-color: #1f1c47;
     font-family: sans-serif;
     color: white;
 }
@@ -57,7 +57,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: bold;
 }
 p>label, span>label, h3>label, h4>label, td>label, .info-item>label {
-    color: #30a532;
+    color: #ff7a87;
 }
 label.warning {
     color: red;
@@ -84,7 +84,7 @@ label.warning {
 
 .Subtitle {
     font-size: 1.0em;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgb(255 255 255 / 80%);
     margin: 0;
     margin-top: 0.5em;
     margin-bottom: 0.5em;
@@ -92,33 +92,33 @@ label.warning {
 
 .PaginationControl,
 .PageButton {
-    background-color: #008522;
+    background-color: #dbf7f5;
     min-height: 1.5em;
     padding: 5px;
     padding-top: 8px;
     margin-right: 1em;
     font-weight: bold;
     font-size: 1em;
-    color: white;
+    color: black;
     border: none;
     font-family: sans-serif;
 }
 
 .PageButton.disabled {
-    background-color: #808080;
+    background-color: #899897;
 }
 
 .PaginationControl select {
     font-size: inherit;
     background-color: #1a1a1a;
-    color: #008522;
+    color: white;
     border: none;
     padding: 0;
     margin: 0;
 }
 
 .PageButton:hover {
-    background-color: #006a1b;
+    background-color: #dbf7f5;
 }
 .PageButton.disabled:hover {
     background-color: #707070;
@@ -145,19 +145,20 @@ label.warning {
 table thead tr,
 .TableHeader {
     font-weight: bold;
-    background-color: #008522;
+    color: black;
+    background-color: #dbf7f5;
 }
 
 .TitleUnderliner {
     height: 2px;
     width: 100%;
-    background-color: #008522;
+    background-color: #dbf7f5;
     margin-bottom: 1em;
 }
 .TitleDivider {
     height: 2px;
     width: 100%;
-    background-color: #008522;
+    background-color: #dbf7f5;
     margin: 1em 0;
 }
 
@@ -193,13 +194,14 @@ td {
 }
 
 a:link, a:visited {
+    color: black;
     text-decoration: underline;
     color: white;
 }
 
 a:hover {
     text-decoration: underline;
-    color: #78be20;
+    color: #12c7ba;
 }
 
 form {
@@ -326,7 +328,7 @@ div.quorums {
 }
 
 div.quorums>div {
-    border: 2px solid #008522;
+    border: 2px solid #dbf7f5;
     border-radius: 5px;
     padding: 0;
     flex-grow: 1;
@@ -357,7 +359,7 @@ div.quorums>div>.workers {
     /*space-between;*/
 }
 .quorums.obligations .workers, .quorums.pulse .validators, .quorums.blink .validators.q1 {
-    border-top: 2px solid #008522;
+    border-top: 2px solid #dbf7f5;
 }
 .quorums .workers label, .quorums .validators label {
     font-weight: bold;
@@ -367,7 +369,7 @@ div.quorums>div>.workers {
     flex-basis: 40px;
     max-width: 60px;
     flex-grow: 1;
-    background-color: #bbb;
+    background-color: #a2a2a2;
     border: 1px solid #555;
     border-radius: 5px;
     overflow: hidden;
@@ -375,7 +377,7 @@ div.quorums>div>.workers {
     margin: 3px 3px;
     padding: 1px 1px 1px 1px;
     font-size: 10px;
-    color: black;
+    color: white;
     text-decoration: none;
 }
 .quorums .validators .sn {
@@ -384,26 +386,25 @@ div.quorums>div>.workers {
     color: white;
 }
 .quorums .sn:hover {
-    background-color: #006a1b;
-    border-color: #78be20;
-    color: #78be20;
+    background-color: #3f4bf5;
+    color: white;
 }
 .quorums.pulse .workers .sn {
     flex-grow: 1;
     max-width: 150px;
 }
 div.quorums h2 {
-    background-color: #008522;
-    color: white;
+    background-color: #dbf7f5;
+    color: black;
     font-size: 14px;
     font-weight: bold;
     margin: 0;
 }
 div.quorums>div.now h2 {
-    background-color: #78be20;
+    background-color: #dbf7f5;
 }
 div.quorums>div.now, div.quorums.obligations>div.now .workers, div.quorums.blink>div.now {
-    border-color: #78be20;
+    border-color: #dbf7f5;
 }
 div.quorums h5 {
     margin: 0;
@@ -475,7 +476,7 @@ span.icon {
     tab-size: 4;
     -o-tab-size: 4;
     -moz-tab-size: 4;
-    border: 1px solid #008522;
+    border: 1px solid #dbf7f5;
     padding: 10px;
 }
 
