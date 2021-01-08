@@ -131,7 +131,7 @@
             {% else %}
                 Blocks {{blocks[0].height}}–{{blocks[-1].height}}
             {% endif %}
-            <a class="LinkNoUnderline" href="/range/{{blocks[0].height}}/{{blocks[-1].height}}" title="Permanent link to this block range">🔗</a>
+            <a class="linked-icon" href="/range/{{blocks[0].height}}/{{blocks[-1].height}}" title="Permanent link to this block range">🔗</a>
         </h2>
 
         {% set block_sizes = blocks | map(attribute='block_size') | sort %}

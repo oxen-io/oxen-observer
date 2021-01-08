@@ -602,7 +602,7 @@ def show_tx(txid, more_details=False):
                         i += 1
 
     if more_details:
-        formatter = HtmlFormatter(cssclass="syntax-highlight", style="native")
+        formatter = HtmlFormatter(cssclass="syntax-highlight", style="paraiso-dark")
         more_details = {
                 'details_css': formatter.get_style_defs('.syntax-highlight'),
                 'details_html': highlight(json.dumps(tx, indent="\t", sort_keys=True), JsonLexer(), formatter),
