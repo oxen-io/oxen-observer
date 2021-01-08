@@ -151,7 +151,7 @@ This tx does not includes a vote from this testing service node (only 7 votes ar
             {%if tx.extra.sn_registration.fee == 1000000%}N/A (solo registration)
             {%else%}{{(tx.extra.sn_registration.fee / 10000) | chop0}}%
             {%endif%}</p>
-            <p><label>Contribution Amount:</label> {{tx.stake_amount | oxen}}</p>
+            <p><label>Contribution Amount:</label> {%if 'stake_amount' in tx%}{{tx.stake_amount | oxen}}{%else%}???{%endif%}</p>
             <p><label>Expiration:</label> {{tx.extra.sn_registration.expiry | from_timestamp | format_datetime}} ({{tx.extra.sn_registration.expiry}}),
             or {{(tx.extra.sn_registration.expiry|from_timestamp - server.datetime) | reltime}}</p>
 
