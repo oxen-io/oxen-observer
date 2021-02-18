@@ -721,12 +721,47 @@ def api_emission():
     })
 
 
+@app.route('/api/service_node_stats')
+def api_service_node_stats():
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+    stakinginfo = FutureJSON(lmq, oxend, 'rpc.get_staking_requirement', 30)
+    sns = get_sns_future(lmq, oxend)
+    sns = sns.get()
+    if 'service_node_states' not in sns:
+        return flask.jsonify({"status": "Error retrieving SN stats"}), 500
+    sns = sns['service_node_states']
+
+    stats = {'active': 0, 'funded': 0, 'awaiting_contribution': 0, 'decommissioned': 0, 'staked': 0}
+    for sn in sns:
+        if sn['funded']:
+            stats['funded'] += 1
+            if sn['active']:
+                stats['active'] += 1
+            else:
+                stats['decommissioned'] += 1
+        else:
+            stats['awaiting_contribution'] += 1
+        stats['staked'] += sn['total_contributed']
+
+    stats['staked'] /= 1_000_000_000
+    stats['sn_reward'] = 16.5
+    stats['sn_reward_interval'] = stats['active']
+    stakinginfo = stakinginfo.get()
+    stats['sn_staking_requirement_full'] = stakinginfo['staking_requirement'] / 1_000_000_000
+    stats['sn_staking_requirement_min'] = stats['sn_staking_requirement_full'] / 4
+
+    info = info.get()
+    stats['height'] = info['height']
+    return flask.jsonify({"data": stats, "status": "OK"})
+
+
 @app.route('/api/circulating_supply')
 def api_circulating_supply():
     lmq, oxend = lmq_connection()
     coinbase = FutureJSON(lmq, oxend, 'admin.get_coinbase_tx_sum', 10, timeout=1, fail_okay=True,
             args={"height":0, "count":2**31-1}).get()
-    return flask.jsonify((coinbase["emission_amount"] - coinbase["burn_amount"]) // 1000000000 if coinbase else None)
+    return flask.jsonify((coinbase["emission_amount"] - coinbase["burn_amount"]) // 1_000_000_000 if coinbase else None)
 
 
 # FIXME: need better error handling here
