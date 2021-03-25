@@ -3,7 +3,7 @@
 {% block content %}
 
 {%-set portions_base = 2**64 - 4 %}
-{%-set solo_node = sn.portions_for_operator == portions_base %}
+{%-set solo_node = sn.contributors|length == 1 and sn.funded %}
 {%-set decommed = sn.funded and not sn.active %}
 
 <div class="sn-details Wrapper">

@@ -1,10 +1,10 @@
 {# First three commons columns of SN tables: pubkey, # contributors, and op fee #}
 
 {%-set portions_base = 2**64 - 4-%}
+{%-set solo_node = sn.contributors|length == 1 and sn.funded %}
 
 <td><a href="/sn/{{sn.service_node_pubkey}}">{{sn.service_node_pubkey}}</a></td>
 <td title="
 {%-for c in sn.contributors%}{%for lc in c.locked_contributions%}{{c.address | truncate(15)}} ({{lc.amount | oxen(decimals=0)}} = {{(lc.amount / sn.staking_requirement * 100) | round(1) | chop0}}%)
 {%endfor%}{%endfor%}"><span class="icon">{{sn.contributors | length}}/4</span></td>
-<td>{%if sn.portions_for_operator != portions_base or sn.contributors|length > 1 or not sn.funded-%}
-    {{ (sn.portions_for_operator / portions_base * 100) | round(3) | chop0 }}{%endif%}</td>
+<td>{%if not solo_node%}{{ (sn.portions_for_operator / portions_base * 100) | round(3) | chop0 }}{%endif%}</td>
