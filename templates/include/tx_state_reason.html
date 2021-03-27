@@ -1,0 +1,21 @@
+{%- macro display(reason, some=false) -%}
+    {% if reason == 'uptime' -%}
+        Missing Uptime Proofs
+    {% elif reason == 'checkpoints' -%}
+        Missed too many checkpoint votes
+    {% elif reason == 'pulse' -%}
+        Missed too many pulse quorums
+    {% elif reason == 'storage' -%}
+        Oxen Storage Server is not reachable
+    {% elif reason == 'timecheck' -%}
+        SN is not responding to time checks
+    {% elif reason == 'timesync' -%}
+        SN's system clock is too far off
+    {% else -%}
+        Unknown reason ("{{reason}}")
+    {% endif -%}
+
+    {% if some %}
+        <span class="comment" title="Some, but not all, voting quorum nodes gave this reason">(non-unanimous)</span>
+    {% endif -%}
+{% endmacro -%}

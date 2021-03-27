@@ -1,5 +1,9 @@
 {% extends "_basic.html" %}
 
+{% import 'include/tx_type_symbol.html' as sym %}
+{% import 'include/tx_fee.html' as fee %}
+{% import 'include/tx_state_reason.html' as readable_reason %}
+
 {% block content %}
 
 <div class="Wrapper">
@@ -42,7 +46,6 @@
           <span title="Unix timestamp: {{tx.received_timestamp}}"><label>In mempool since:</label> {{tx.received_timestamp | from_timestamp | format_datetime('short')}} UTC
           ({{tx.received_timestamp | from_timestamp | ago}} ago)</span>
         {%endif%}
-        {% import 'include/tx_type_symbol.html' as sym %}
         <span><label>TX Version/Type:</label> {{tx.info.version}}/{{sym.display(tx, text=true)}}</span>
         {%if not have_raw_tx%}
           {%if 'block_timestamp' in tx%}
@@ -56,7 +59,6 @@
             {%if tx.coinbase or 'rct_signatures' not in tx.info%}
                 N/A
             {%else%}
-                {% import 'include/tx_fee.html' as fee %}
                 {{fee.display(tx)}}
                 ({{(tx.info.rct_signatures.txnFee * 1000 / tx.size) | oxen(tag=false, decimals=6)}})
             {%endif%}
@@ -81,11 +83,14 @@
     {% if tx.info.version >= 4 -%}
         {% if tx.info.type == 1 and 'sn_state_change' in tx.extra %}
             <h2>
-            {%- if tx.extra.sn_state_change.type == 'decom' -%}
+            {%- set show_reasons = false -%}
+            {% if tx.extra.sn_state_change.type == 'decom' -%}
+                {% set show_reasons = true -%}
                 👎 Service Node Decommission Metadata
             {% elif tx.extra.sn_state_change.type == 'recom' -%}
                 👍 Service Node Recommission Metadata
             {% elif tx.extra.sn_state_change.type == 'dereg' -%}
+                {% set show_reasons = true -%}
                 🚫 Service Node Deregistration Metadata
             {% elif tx.extra.sn_state_change.type == 'ip' -%}
                 📋 Service Node IP Change Metadata
@@ -98,6 +103,29 @@
             {%set sn_index = tx.extra.sn_state_change.index%}
             {%if testing_quorum%}
                 <p class="state-change-pubkey">Service Node Public Key: <a href="/sn/{{testing_quorum.workers[sn_index]}}">{{testing_quorum.workers[sn_index]}}</a></p>
+            {%endif%}
+
+            {%if show_reasons%}
+                <h3>{%if tx.extra.sn_state_change.type == 'decom'%}Decommission{%else%}Deregistration{%endif%} Reason(s):</h3>
+                <ul>
+                    {%if tx.extra.sn_state_change.reasons or tx.extra.sn_state_change.reasons%}
+                        {%if tx.extra.sn_state_change.reasons%}
+                            {%for r in tx.extra.sn_state_change.reasons%}
+                                <li>{{ readable_reason.display(r) }}</li>
+                            {%endfor%}
+                        {%endif%}
+                        {%if tx.extra.sn_state_change.reasons_some%}
+                            {%for r in tx.extra.sn_state_change.reasons_some%}
+                                <li>{{ readable_reason.display(r, true) }}</li>
+                            {%endfor%}
+                        {%endif%}
+                    {%else%}
+                        <li class="no-reason">Reasons not available</li>
+                    {%endif%}
+                </ul>
+            {%endif%}
+
+            {%if testing_quorum%}
                 <div class="quorums">
                     <div class="tx-state-change-quorum">
                         <h2>Testing quorum {{tx.extra.sn_state_change.height}}</h2>
