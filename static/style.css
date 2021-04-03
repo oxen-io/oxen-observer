@@ -500,3 +500,14 @@ span.icon {
 tr.tx-input-key-image>td {
     padding-top: 1.5em;
 }
+
+.sn-details .sn-details-main {
+    display: flex;
+    flex-wrap: wrap;
+}
+.sn-details .sn-details-main .details {
+    flex-grow: 1;
+}
+.sn-details .sn-details-main img.qr {
+    flex-grow: 0;
+}

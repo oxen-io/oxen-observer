@@ -15,6 +15,8 @@ from pygments import highlight
 from pygments.lexers import JsonLexer
 from pygments.formatters import HtmlFormatter
 import subprocess
+import qrcode
+from io import BytesIO
 
 import config
 import local_config
@@ -441,6 +443,25 @@ def show_sn(pubkey):
             hf=hfinfo.get(),
             sn=sn,
             )
+
+
+@app.route('/qr/<hex64:pubkey>')
+def qr_sn_pubkey(pubkey):
+    qr = qrcode.QRCode(
+        box_size=5,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+    )
+    qr.add_data(pubkey.upper())
+    img = qr.make_image(
+        fill_color="#1e1d48",
+        back_color="#dbf7f5"
+    )
+    with BytesIO() as output:
+        img.save(output, format="PNG")
+        r = flask.make_response(output.getvalue())
+    r.headers.set('Content-Type', 'image/png')
+    return r
+
 
 def parse_txs(txs_rpc):
     """Takes a tx_req(...).get() response and parses the embedded nested json into something useful

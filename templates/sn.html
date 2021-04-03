@@ -7,16 +7,21 @@
 {%-set decommed = sn.funded and not sn.active %}
 
 <div class="sn-details Wrapper">
-  <h2>Service Node Details</h2>
-  <div class="TitleUnderliner"></div>
-  <h4 style="margin:5px"><label>Service Node Public Key:</label> {{sn.service_node_pubkey}}</h4>
-  {%if sn.pubkey_ed25519 %}
-    {%if sn.pubkey_ed25519 != sn.service_node_pubkey%}
-      <h4 style="margin:5px"><label>Service Node Auxiliary Pubkey:</label> {{sn.pubkey_ed25519}}</h4>
-    {%endif%}
-    <h4 style="margin:5px"><label>Lokinet Address:</label> {{sn.pubkey_ed25519 | base32z}}.snode</h4>
-  {%endif%}
-  <h4 style="margin:5px"><label>Operator Address:</label> {{sn.operator_address}}</h4>
+  <div class="sn-details-main">
+    <div class="details">
+      <h2>Service Node Details</h2>
+      <div class="TitleUnderliner"></div>
+      <h4 style="margin:5px"><label>Service Node Public Key:</label> {{sn.service_node_pubkey}}</h4>
+      {%if sn.pubkey_ed25519 %}
+        {%if sn.pubkey_ed25519 != sn.service_node_pubkey%}
+          <h4 style="margin:5px"><label>Service Node Auxiliary Pubkey:</label> {{sn.pubkey_ed25519}}</h4>
+        {%endif%}
+        <h4 style="margin:5px"><label>Lokinet Address:</label> {{sn.pubkey_ed25519 | base32z}}.snode</h4>
+      {%endif%}
+      <h4 style="margin:5px"><label>Operator Address:</label> {{sn.operator_address}}</h4>
+    </div>
+    <img class="qr" src="/qr/{{sn.service_node_pubkey}}" title="{{sn.service_node_pubkey}}">
+  </div>
 
   <h2>Metadata</h2>
   <div class="TitleUnderliner"></div>
