@@ -119,6 +119,12 @@
       {{cp_voted}} / {{cp_total}}
     </span>
 
+    <span title="Storage server swarm">
+        <label>Swarm ID:</label>
+        {%if sn.swarm_id == 18446744073709551615%}(none){%else%}0x{{'{:016x}'.format(sn.swarm_id)}}{%endif%}
+    </span>
+
+
   </h4>
 
   <h2>Service Node Status</h2>

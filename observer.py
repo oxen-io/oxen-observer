@@ -179,7 +179,7 @@ def get_sns_future(lmq, oxend):
                     'last_reward_transaction_index', 'active', 'funded', 'earned_downtime_blocks',
                     'service_node_version', 'contributors', 'total_contributed', 'total_reserved',
                     'staking_requirement', 'portions_for_operator', 'operator_address', 'pubkey_ed25519',
-                    'last_uptime_proof', 'state_height') } })
+                    'last_uptime_proof', 'state_height', 'swarm_id') } })
 
 def get_sns(sns_future, info_future):
     info = info_future.get()
