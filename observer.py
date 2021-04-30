@@ -33,6 +33,8 @@ else:
 
 app = flask.Flask(__name__)
 
+app.jinja_options['extensions'].append('jinja2.ext.loopcontrols')
+
 class Hex64Converter(BaseConverter):
     def __init__(self, url_map):
         super().__init__(url_map)
@@ -420,6 +422,8 @@ def show_sn(pubkey):
     info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
     hfinfo = FutureJSON(lmq, oxend, 'rpc.hard_fork_info', 10)
     sn = sn_req(lmq, oxend, pubkey).get()
+    quos = get_quorums_future(lmq, oxend, info.get()['height'])
+
 
     if 'service_node_states' not in sn or not sn['service_node_states']:
         return flask.render_template('not_found.html',
@@ -442,6 +446,7 @@ def show_sn(pubkey):
             info=info.get(),
             hf=hfinfo.get(),
             sn=sn,
+            quorums=get_quorums(quos)
             )
 
 

@@ -124,6 +124,28 @@
         {%if sn.swarm_id == 18446744073709551615%}(none){%else%}0x{{'{:016x}'.format(sn.swarm_id)}}{%endif%}
     </span>
 
+    <!--<pre>{{quorums}}</pre>-->
+    {%set next_test = namespace(height=none)%}
+    {%for q in quorums.obligation[-13:]%}
+      {%if next_test.height%}{%break%}{%endif%}
+      {%if q.height + 13 >= info.height%}
+        {%for w in q.quorum.workers%}
+          {%if w == sn.service_node_pubkey%}
+            {%set next_test.height = q.height + 13%}
+            {%break%}
+          {%endif%}
+        {%endfor%}
+      {%endif%}
+    {%endfor%}
+    <span title="Next SN test">
+      <label>Next SN test:</label>
+      {%if next_test.height%}
+        Block {{next_test.height}}
+        ({%if next_test.height == info.height%}Now!{%else%}~{{((next_test.height - info.height) * 120) | reltime(in_ago=false)}}{%endif%})
+      {%else%}
+        <span title="&gt;12 blocks (~24 minutes): future test quorums are only known 12 blocks in advance">Unknown</span>
+      {%endif%}
+    </span>
 
   </h4>
 
