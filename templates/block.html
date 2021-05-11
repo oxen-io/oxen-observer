@@ -12,11 +12,11 @@
       </h4>
       <h4 style="margin:5px" class="prev_next_block">
           {%if block_header.height > 0%}
-              <a href="/block/{{block_header.height-1}}{%if details_html%}/1{%endif%}">« Block {{block_header.height-1}} <span class="comment">({{block_header.prev_hash | ellipsize(8,3)}})</span></a>
+              <a href="/block/{{block_header.height-1}}{%if details_html%}/1{%endif%}">⏴ Block {{block_header.height-1}} <span class="comment">({{block_header.prev_hash | ellipsize(8,3)}})</span></a>
           {%endif%}
           {%if block_header.height < info.height - 1%}
               {%if block_header.height > 0%} | {%endif%}
-              <a href="/block/{{block_header.height+1}}{%if details_html%}/1{%endif%}">Block {{block_header.height-1}} <span class="comment">({{block_header.prev_hash | ellipsize(10,3)}})</span> »</a>
+              <a href="/block/{{block_header.height+1}}{%if details_html%}/1{%endif%}">Block {{block_header.height+1}} ⏵</a>
               |
               <a href="/block/latest">Latest block ⏭</a>
           {%endif%}
