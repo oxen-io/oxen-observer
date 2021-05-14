@@ -674,6 +674,9 @@ def show_quorums():
             )
 
 
+base32z_dict = 'ybndrfg8ejkmcpqxot1uwisza345h769'
+base32z_map = {base32z_dict[i]: i for i in range(len(base32z_dict))}
+
 @app.route('/search')
 def search():
     lmq, oxend = lmq_connection()
@@ -683,7 +686,15 @@ def search():
     if val and len(val) < 10 and val.isdigit(): # Block height
         return flask.redirect(flask.url_for('show_block', height=val), code=301)
 
-    if not val or len(val) != 64 or any(c not in string.hexdigits for c in val):
+    if val and len(val) == 58 and val.endswith(".snode") and val[51] in 'yoYO' and all(c in base32z_dict for c in val[0:52].lower()):
+        v, bits = 0, 0
+        for x in val[0:52].lower():
+            v = (v << 5) | base32z_map[x]  # Arbitrary precision integers hurray!
+        # The above loads 260 bytes (5 bits per char * 52 chars), but we only want 256:
+        v >>= 4
+        val = "{:64x}".format(v)
+
+    elif not val or len(val) != 64 or any(c not in string.hexdigits for c in val):
         return flask.render_template('not_found.html',
                 info=info.get(),
                 type='bad_search',
@@ -696,7 +707,7 @@ def search():
     txreq = tx_req(lmq, oxend, [val])
 
     sn = snreq.get()
-    if 'service_node_states' in sn and sn['service_node_states']:
+    if sn and 'service_node_states' in sn and sn['service_node_states']:
         return flask.redirect(flask.url_for('show_sn', pubkey=val), code=301)
     bl = blreq.get()
     if bl and 'block_header' in bl and bl['block_header']:
