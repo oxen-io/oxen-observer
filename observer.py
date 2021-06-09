@@ -415,8 +415,6 @@ def block_with_txs_req(lmq, oxend, hash_or_height, **kwargs):
     return FutureJSON(lmq, oxend, 'rpc.get_block', cache_key='single', args=args, **kwargs)
 
 
-@app.route('/service_node/<hex64:pubkey>')                      # For backwards compatibility 
-@app.route('/service_node/<hex64:pubkey>/<int:more_details>')   # with old explorer URLs
 @app.route('/sn/<hex64:pubkey>')
 @app.route('/sn/<hex64:pubkey>/<int:more_details>')
 def show_sn(pubkey, more_details=False):
