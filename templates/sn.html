@@ -231,5 +231,18 @@
         {%endfor%}
       </table>
     {%endif%}
+
+    {%if details_html%}
+      <style type="text/css">
+        {{details_css | safe}}
+      </style>
+      <div class="TitleDivider" id="more_details"></div>
+        {{details_html | safe}}
+      {%else%}
+      <h5>
+        <a href="/sn/{{sn.service_node_pubkey}}/1#more_details">Show raw details</a>
+      </h5>
+    {%endif%}
 </div>
-{%endblock%}
+{% endblock %}
+

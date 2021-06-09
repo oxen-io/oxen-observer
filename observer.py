@@ -415,9 +415,11 @@ def block_with_txs_req(lmq, oxend, hash_or_height, **kwargs):
     return FutureJSON(lmq, oxend, 'rpc.get_block', cache_key='single', args=args, **kwargs)
 
 
-@app.route('/service_node/<hex64:pubkey>')  # For backwards compatibility with old explorer URLs
+@app.route('/service_node/<hex64:pubkey>')                      # For backwards compatibility 
+@app.route('/service_node/<hex64:pubkey>/<int:more_details>')   # with old explorer URLs
 @app.route('/sn/<hex64:pubkey>')
-def show_sn(pubkey):
+@app.route('/sn/<hex64:pubkey>/<int:more_details>')
+def show_sn(pubkey, more_details=False):
     lmq, oxend = lmq_connection()
     info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
     hfinfo = FutureJSON(lmq, oxend, 'rpc.hard_fork_info', 10)
@@ -442,11 +444,21 @@ def show_sn(pubkey):
     # Available open contribution spots:
     sn['num_open_spots'] = 0 if sn['total_reserved'] >= sn['staking_requirement'] else max(0, 4 - sn['num_contributions'] - sn['num_reserved_spots'])
 
+    if more_details:
+        formatter = HtmlFormatter(cssclass="syntax-highlight", style="paraiso-dark")
+        more_details = {
+                'details_css': formatter.get_style_defs('.syntax-highlight'),
+                'details_html': highlight(json.dumps(sn, indent="\t", sort_keys=True), JsonLexer(), formatter),
+                }
+    else:
+        more_details = {}
+
     return flask.render_template('sn.html',
             info=info.get(),
             hf=hfinfo.get(),
             sn=sn,
-            quorums=get_quorums(quos)
+            quorums=get_quorums(quos),
+            **more_details,
             )
 
 
