@@ -165,17 +165,32 @@
             {% import 'include/tx_type_symbol.html' as symbol %}
             {% import 'include/tx_fee.html' as fee %}
             {% for b in blocks | reverse %}
-              <tr class="block">
-                <td><a href="/block/{{b.height}}">{{b.height}}</a></td>
-                <td title="{{b.timestamp | from_timestamp | format_datetime}}">{{b.timestamp | from_timestamp | ago}}</td>
-                <td>{{b.block_size | si}}</td>
-                <td>{{symbol.display(b.txs[0])}}</td>
-                <td><a href="/tx/{{b.miner_tx_hash}}">{{b.miner_tx_hash}}</a></td>
-                <td>{{fee.display(b.txs[0])}}</td>
-                <td>{{b.reward | oxen(tag=False, fixed=True, decimals=2)}}</td>
-                <td>0/{{b.txs[0].info.vout | length}}</td>
-                <td>{{b.txs[0].size | si}}</td>
-              </tr>
+              {% if b.txs | length > 0 %}
+                <tr class="block">
+                  <td><a href="/block/{{b.height}}">{{b.height}}</a></td>
+                  <td title="{{b.timestamp | from_timestamp | format_datetime}}">{{b.timestamp | from_timestamp | ago}}</td>
+                  <td>{{b.block_size | si}}</td>
+                  <td>{{symbol.display(b.txs[0])}}</td>
+                  <td><a href="/tx/{{b.miner_tx_hash}}">{{b.miner_tx_hash}}</a></td>
+                  <td>{{fee.display(b.txs[0])}}</td>
+                  <td>{{b.reward | oxen(tag=False, fixed=True, decimals=2)}}</td>
+                  <td>0/{{b.txs[0].info.vout | length}}</td>
+                  <td>{{b.txs[0].size | si}}</td>
+                </tr>
+              {% else %}
+                {# no miner tx, e.g. from batching #}
+                <tr class="block">
+                  <td><a href="/block/{{b.height}}">{{b.height}}</a></td>
+                  <td title="{{b.timestamp | from_timestamp | format_datetime}}">{{b.timestamp | from_timestamp | ago}}</td>
+                  <td>{{b.block_size | si}}</td>
+                  <td></td>
+                  <td><a href="/tx/{{b.miner_tx_hash}}">{{b.miner_tx_hash}}</a></td>
+                  <td></td>
+                  <td>{{b.reward | oxen(tag=False, fixed=True, decimals=2)}}</td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              {%endif%}
               {% for tx in b.txs[1:] %}
                 <tr class="tx">
                   <td></td>

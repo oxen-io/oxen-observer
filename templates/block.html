@@ -68,7 +68,7 @@ Note that this value does not include earned transaction fees ({{sum_fees | oxen
             </span>
         {%endif%}
 
-        {%if miner_tx.extra.sn_winner%}
+        {%if miner_tx and miner_tx.extra.sn_winner%}
           <span><label>Service Node Winner:</label>
             {%if miner_tx.extra.sn_winner == "0000000000000000000000000000000000000000000000000000000000000000"%}
               None
@@ -79,6 +79,7 @@ Note that this value does not include earned transaction fees ({{sum_fees | oxen
         {%endif%}
     </h4>
 
+    {%if miner_tx%}
     <h2>Miner Reward Transaction</h2>
     <div class="TitleUnderliner"></div>
     <table class="Table">
@@ -95,6 +96,7 @@ Note that this value does not include earned transaction fees ({{sum_fees | oxen
             <td>{{miner_tx.info.version}}</td>
         </tr>
     </table>
+    {%endif%}
 
 
     <h2>Transactions ({{transactions | length}})</h2>
