@@ -114,8 +114,8 @@
                                 <li>{{ readable_reason.display(r) }}</li>
                             {%endfor%}
                         {%endif%}
-                        {%if tx.extra.sn_state_change.reasons_some%}
-                            {%for r in tx.extra.sn_state_change.reasons_some%}
+                        {%if tx.extra.sn_state_change.reasons_maybe%}
+                            {%for r in tx.extra.sn_state_change.reasons_maybe%}
                                 <li>{{ readable_reason.display(r, true) }}</li>
                             {%endfor%}
                         {%endif%}
