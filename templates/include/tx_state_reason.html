@@ -7,6 +7,8 @@
         Missed too many pulse quorums
     {% elif reason == 'storage' -%}
         Oxen Storage Server is not reachable
+    {% elif reason == 'lokinet' -%}
+        Lokinet is not reachable
     {% elif reason == 'timecheck' -%}
         SN is not responding to time checks
     {% elif reason == 'timesync' -%}
