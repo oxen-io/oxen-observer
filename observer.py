@@ -475,7 +475,6 @@ def show_ons(name, more_details=False):
                 val = pysodium.crypto_aead_xchacha20poly1305_ietf_decrypt(ciphertext=ciphertext, ad=b'', nonce=nonce, key=decryption_key)
 
                 # lokinet check
-                print(ons_types[ons_type])
                 if ons_types[ons_type] == 2:
                     # val will currently be the raw lokinet ed25519 pubkey (32 bytes).  We can convert it to the more
                     # common lokinet address (which is the same value but encoded in z-base-32) and convert the bytes to
