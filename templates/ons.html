@@ -1,0 +1,69 @@
+{% extends "_basic.html" %}
+
+{% block content %}
+
+
+<div class="sn-details Wrapper">
+  <div class="sn-details-main">
+    <div class="details">
+      <h2>Oxen Name Server Lookup <b>"{{ons.name}}"</b></h2>
+      <div class="TitleUnderliner"></div>
+      <h2><label>Session</label> </h2>
+      <div class="TitleUnderliner"></div>
+        {%if ons.session == True%}
+          <h4 style="margin:5px"><label>Available:</label> Yes</h4> 
+        {%else%}
+          <h4 style="margin:5px"><label>Available:</label> No</h4>
+          <h4 style="margin:5px"><label>Owner:</label> {{ons.session.owner}}</h4>
+          <h4 style="margin:5px"><label>TX Hash:</label> <a href="/tx/{{ons.session.txid}}">{{ons.session.txid}}</a></h4>
+
+          <h4 style="margin:5px"><label>Update Height:</label> <a href="/block/{{ons.session.update_height}}">{{ons.session.update_height}}</a></h4>
+          <h4 style="margin:5px"><label>Name Hash:</label> {{ons.session.name_hash}}</h4>
+          <h4 style="margin:5px"><label>Mapping:</label> {{ons.session.mapping}}</h4>
+        {%endif%}
+
+      <h2><label>Wallet</label></h2>  
+      <div class="TitleUnderliner"></div>     
+        {%if ons.wallet == True%}
+          {%if ons.session == True%}
+            <h4 style="margin:5px"><label>Available:</label> Yes</h4> 
+          {%else%}
+            <h4 style="margin:5px"><label>Available:</label> Only available for above Session ID Owner</h4>
+          {%endif%}
+        {%else%}
+          <h4 style="margin:5px"><label>Available:</label> No</h4>
+          <h4 style="margin:5px"><label>Owner:</label> {{ons.wallet.owner}}</h4>
+          <h4 style="margin:5px"><label>TX Hash:</label> <a href="/tx/{{ons.wallet.txid}}">{{ons.wallet.txid}}</a></h4>
+          <h4 style="margin:5px"><label>Update Height:</label> <a href="/block/{{ons.wallet.update_height}}">{{ons.wallet.update_height}}</a></h4>
+          <h4 style="margin:5px"><label>Name Hash:</label> {{ons.wallet.name_hash}}</h4>
+          <h4 style="margin:5px"><label>Mapping:</label> {{ons.wallet.mapping}}</h4>
+        {%endif%}
+
+      <h2><label>Lokinet</label></h2>  
+      <div class="TitleUnderliner"></div>     
+        {%if ons.lokinet == True%}
+          <h4 style="margin:5px"><label>Available:</label> Yes</h4> 
+        {%else%}
+          <h4 style="margin:5px"><label>Available:</label> No</h4>
+          <h4 style="margin:5px"><label>Owner:</label> {{ons.lokinet.owner}}</h4>
+          <h4 style="margin:5px"><label>TX Hash:</label> <a href="/tx/{{ons.session.txid}}">{{ons.lokinet.txid}}</a></h4>
+          <h4 style="margin:5px"><label>Update Height:</label> <a href="/block/{{ons.lokinet.update_height}}">{{ons.lokinet.update_height}}</a></h4>
+          <h4 style="margin:5px"><label>Expiration Height:</label> {{ons.lokinet.expiration_height}}</h4>
+          <h4 style="margin:5px"><label>Name Hash:</label> {{ons.lokinet.name_hash}}</h4>
+          <h4 style="margin:5px"><label>Mapping:</label> {{ons.lokinet.mapping}}</h4>
+        {%endif%}
+    </div>
+  </div>
+  {%if details_html%}
+    <style type="text/css">
+      {{details_css | safe}}
+    </style>
+    <div class="TitleDivider" id="more_details"></div>
+      {{details_html | safe}}
+  {%else%}
+    <h5>
+      <a href="/ons/{{ons.name}}/1#more_details">Show raw details</a>
+    </h5>
+  {%endif%}
+</div>
+{% endblock %}
