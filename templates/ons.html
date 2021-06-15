@@ -43,6 +43,8 @@
       <div class="TitleUnderliner"></div>     
         {%if ons.lokinet == True%}
           <h4 style="margin:5px"><label>Available:</label> Yes</h4> 
+        {%elif ons.lokinet == False%}
+          <h4 style="margin:5px"><label>Available:</label> No</h4>
         {%else%}
           <h4 style="margin:5px"><label>Available:</label> No</h4>
           <h4 style="margin:5px"><label>Owner:</label> {{ons.lokinet.owner}}</h4>

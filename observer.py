@@ -501,7 +501,10 @@ def show_ons(name, more_details=False):
                 ons_data[ons_type]['mapping'] = 'Owner needs to update their ID for mapping info.'
         else: 
             # If returned with no data from the RPC
-            ons_data[ons_type] = True
+            if (ons_types[ons_type] == 2 and '-' in name and len(name) > 63) or (ons_types[ons_type] == 2 and '-' not in name and len(name) > 32):
+                ons_data[ons_type] = False
+            else:
+                ons_data[ons_type] = True
 
     if more_details:
         formatter = HtmlFormatter(cssclass="syntax-highlight", style="paraiso-dark")
@@ -512,7 +515,7 @@ def show_ons(name, more_details=False):
     else:
         more_details = {}
                 
-
+    print(ons_data)
     return flask.render_template('ons.html',
             info=info.get(),
             ons=ons_data,
@@ -827,17 +830,13 @@ def search():
         if tx and 'txs' in tx and tx['txs']:
             return flask.redirect(flask.url_for('show_tx', txid=val), code=301)
 
+    if val and len(val) <= 68 and val.endswith(".loki"):
+        val = val.rstrip('.loki')
+
     # ONS can be of length 64 however with txids, and sn pubkey's being of length 64 
     # I have removed it from the possible searches.
     if len(val) < 64 and all(c.isalnum() or c in '_-' for c in val):
         return flask.redirect(flask.url_for('show_ons', name=val), code=301)    
-
-    elif not val or len(val) != 64 or any(c not in string.hexdigits for c in val):
-        return flask.render_template('not_found.html',
-            info=info.get(),
-            type='bad_search',
-            id=val,
-            )
 
     return flask.render_template('not_found.html',
             info=info.get(),
