@@ -515,7 +515,6 @@ def show_ons(name, more_details=False):
     else:
         more_details = {}
                 
-    print(ons_data)
     return flask.render_template('ons.html',
             info=info.get(),
             ons=ons_data,
