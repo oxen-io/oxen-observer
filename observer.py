@@ -432,6 +432,7 @@ def show_ons(name, more_details=False):
     name = name.lower()
     lmq, oxend = lmq_connection()
     info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+
     if len(name) > 64 or not all(c.isalnum() or c in '_-' for c in name):
         return flask.render_template('not_found.html',
             info=info.get(),
@@ -445,14 +446,27 @@ def show_ons(name, more_details=False):
     WALLET_ENCRYPTED_LENGTH = 210   # length it is of HF15 and before.
     LOKINET_ENCRYPTED_LENGTH = 144  # The user must update their session mapping.
 
-
     for ons_type in ons_types:
         onsinfo = ons_info(lmq, oxend, name, ons_types[ons_type]).get() 
-        if 'entries' in onsinfo: 
+
+        if 'entries' not in onsinfo:
+            # If returned with no data from the RPC
+            if (ons_types[ons_type] == 2 and '-' in name and len(name) > 63) or (ons_types[ons_type] == 2 and '-' not in name and len(name) > 32):
+                ons_data[ons_type] = False
+            else:
+                ons_data[ons_type] = True
+
+        else:
             onsinfo = onsinfo['entries'][0]
             ons_data[ons_type] = onsinfo
 
-            if len(onsinfo['encrypted_value']) in [SESSION_ENCRYPTED_LENGTH, WALLET_ENCRYPTED_LENGTH, LOKINET_ENCRYPTED_LENGTH]:
+            if len(onsinfo['encrypted_value']) not in [SESSION_ENCRYPTED_LENGTH, WALLET_ENCRYPTED_LENGTH, LOKINET_ENCRYPTED_LENGTH]:
+                # Encryption involves a much more expensive argon2-based calculation for HF15 registrations.
+                # Owners should be notified they should update to the new encryption format.
+                ons_data[ons_type] = ons_info(lmq, oxend, name,ons_types[ons_type]).get()['entries'][0]
+                ons_data[ons_type]['mapping'] = 'Owner needs to update their ID for mapping info.'
+                
+            else:
                 # RPC returns encrypted_value as ciphertext and nonce concatenated.
                 # The nonce is the last 48 characters of the encrypted value and the remainder of characters is the encrypted_value.
                 nonce_received = onsinfo['encrypted_value'][-48:]
@@ -473,8 +487,34 @@ def show_ons(name, more_details=False):
                 
                 # XChaCha20+Poly1305 decryption
                 val = pysodium.crypto_aead_xchacha20poly1305_ietf_decrypt(ciphertext=ciphertext, ad=b'', nonce=nonce, key=decryption_key)
+                
+                if ons_types[ons_type] == 0:
+                    ons_data[ons_type]['mapping'] = val.hex()
+                    continue
 
-                # lokinet check
+                if ons_types[ons_type] == 1:
+                    network = val[:1] # For mainnet, primary address.  Subaddress is \x74; integrated is \x73; testnet are longer.
+                    
+                    if network == b'\x00':
+                        network = b'\x72'
+
+                    if network == b'\x01':
+                        network = b'\x74'
+
+                    if len(val) > 65:
+                        network = b'\x73'
+
+                    val = val[1:]
+                    keccak_hash = sha3.keccak_256()
+                    keccak_hash.update(network)
+                    keccak_hash.update(val)
+                    checksum = keccak_hash.digest()[0:4]
+
+                    val = network + val + checksum
+
+                    ons_data[ons_type]['mapping'] = b58.encode(val.hex())
+                    continue
+
                 if ons_types[ons_type] == 2:
                     # val will currently be the raw lokinet ed25519 pubkey (32 bytes).  We can convert it to the more
                     # common lokinet address (which is the same value but encoded in z-base-32) and convert the bytes to
@@ -492,19 +532,8 @@ def show_ons(name, more_details=False):
                     val += ".loki"
 
                     ons_data[ons_type]['mapping'] = val
-                else:
-                    ons_data[ons_type]['mapping'] = val.hex()
-            else:
-                # Encryption involves a much more expensive argon2-based calculation for HF15 registrations.
-                # Owners should be notified they should update to the new encryption format.
-                ons_data[ons_type] = ons_info(lmq, oxend, name,ons_types[ons_type]).get()['entries'][0]
-                ons_data[ons_type]['mapping'] = 'Owner needs to update their ID for mapping info.'
-        else: 
-            # If returned with no data from the RPC
-            if (ons_types[ons_type] == 2 and '-' in name and len(name) > 63) or (ons_types[ons_type] == 2 and '-' not in name and len(name) > 32):
-                ons_data[ons_type] = False
-            else:
-                ons_data[ons_type] = True
+                    continue
+                    
 
     if more_details:
         formatter = HtmlFormatter(cssclass="syntax-highlight", style="paraiso-dark")
