@@ -314,23 +314,27 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None):
         txids = []
         for b in blocks:
             b['txs'] = []
-            txids.append(b['miner_tx_hash'])
+            if 'miner_tx_hash' in b and b['miner_tx_hash']:
+                txids.append(b['miner_tx_hash'])
             if 'tx_hashes' in b:
                 txids += b['tx_hashes']
-        txs = parse_txs(tx_req(lmq, oxend, txids, cache_key='mempool').get())
-        i = 0
-        for tx in txs:
-            # TXs should come back in the same order so we can just skip ahead one when the block
-            # height changes rather than needing to search for the block
-            if blocks[i]['height'] != tx['block_height']:
-                i += 1
-                while i < len(blocks) and blocks[i]['height'] != tx['block_height']:
-                    print("Something getting wrong: missing txes?", file=sys.stderr)
+        if txids:
+            txs = parse_txs(tx_req(lmq, oxend, txids, cache_key='mempool').get())
+            i = 0
+            for tx in txs:
+                if 'vin' in tx['info'] and len(tx['info']['vin']) == 1 and 'gen' in tx['info']['vin'][0]:
+                    tx['coinbase'] = True
+                # TXs should come back in the same order so we can just skip ahead one when the block
+                # height changes rather than needing to search for the block
+                if blocks[i]['height'] != tx['block_height']:
                     i += 1
-                if i >= len(blocks):
-                    print("Something getting wrong: have leftover txes")
-                    break
-            blocks[i]['txs'].append(tx)
+                    while i < len(blocks) and blocks[i]['height'] != tx['block_height']:
+                        print("Something getting wrong: missing txes?", file=sys.stderr)
+                        i += 1
+                    if i >= len(blocks):
+                        print("Something getting wrong: have leftover txes")
+                        break
+                blocks[i]['txs'].append(tx)
 
     # Clean up the SN data a bit to make things easier for the templates
     awaiting_sns, active_sns, inactive_sns = get_sns(sns, inforeq)

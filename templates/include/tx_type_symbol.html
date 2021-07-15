@@ -32,8 +32,10 @@
         {%- elif 'sn_contributor' in tx.extra -%}
             <span class="icon" title="Service Node contribution – {{tx.extra.sn_pubkey}} / {{tx.extra.sn_contributor}}">⚑
             {%-if text%} contribution{%endif%}</span>
+        {%- elif tx.coinbase%}
+            <span class="icon" title="Block reward">🎁{%if text%} block reward{%endif%}</span>
         {%- elif text -%}
-            {%if tx.coinbase%}block reward{%else%}transfer{%endif%}
+            transfer
         {%- endif -%}
     {%- elif standard -%}
         {%if tx.coinbase%}block reward{%else%}transfer{%endif%}
