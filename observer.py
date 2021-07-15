@@ -9,6 +9,7 @@ import statistics
 import string
 import requests
 import time
+import base64
 from base64 import b32encode, b16decode
 from werkzeug.routing import BaseConverter
 from pygments import highlight
@@ -17,7 +18,11 @@ from pygments.formatters import HtmlFormatter
 import subprocess
 import qrcode
 from io import BytesIO
-
+import pysodium
+import nacl.encoding
+import nacl.hash
+import base58
+import sha3
 import config
 import local_config
 from lmq import FutureJSON, lmq_connection
@@ -418,6 +423,139 @@ def block_with_txs_req(lmq, oxend, hash_or_height, **kwargs):
 
     return FutureJSON(lmq, oxend, 'rpc.get_block', cache_key='single', args=args, **kwargs)
 
+def ons_info(lmq, oxend, name,ons_type,**kwargs):
+    if ons_type == 2:
+        name=name+'.loki'
+    name_hash = nacl.hash.blake2b(name.encode(), encoder = nacl.encoding.Base64Encoder)
+
+    return FutureJSON(lmq, oxend, 'rpc.ons_names_to_owners', args={
+      "entries": [{'name_hash':name_hash.decode('ascii'),'types':[ons_type]}]})
+
+
+@app.route('/ons/<string:name>')
+@app.route('/ons/<string:name>/<int:more_details>')
+def show_ons(name, more_details=False):
+    name = name.lower()
+    lmq, oxend = lmq_connection()
+    info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
+
+    if len(name) > 64 or not all(c.isalnum() or c in '_-' for c in name):
+        return flask.render_template('not_found.html',
+            info=info.get(),
+            type='bad_search',
+            id=name,
+            )
+
+    ons_types = {'session':0,'wallet':1,'lokinet':2}
+    ons_data = {'name':name}
+    SESSION_ENCRYPTED_LENGTH = 146  # If the encrypted value is not of expected character 
+    WALLET_ENCRYPTED_LENGTH = 210   # length it is of HF15 and before.
+    LOKINET_ENCRYPTED_LENGTH = 144  # The user must update their session mapping.
+
+    for ons_type in ons_types:
+        onsinfo = ons_info(lmq, oxend, name, ons_types[ons_type]).get() 
+
+        if 'entries' not in onsinfo:
+            # If returned with no data from the RPC
+            if (ons_types[ons_type] == 2 and '-' in name and len(name) > 63) or (ons_types[ons_type] == 2 and '-' not in name and len(name) > 32):
+                ons_data[ons_type] = False
+            else:
+                ons_data[ons_type] = True
+
+        else:
+            onsinfo = onsinfo['entries'][0]
+            ons_data[ons_type] = onsinfo
+
+            if len(onsinfo['encrypted_value']) not in [SESSION_ENCRYPTED_LENGTH, WALLET_ENCRYPTED_LENGTH, LOKINET_ENCRYPTED_LENGTH]:
+                # Encryption involves a much more expensive argon2-based calculation for HF15 registrations.
+                # Owners should be notified they should update to the new encryption format.
+                ons_data[ons_type] = ons_info(lmq, oxend, name,ons_types[ons_type]).get()['entries'][0]
+                ons_data[ons_type]['mapping'] = 'Owner needs to update their ID for mapping info.'
+                
+            else:
+                # RPC returns encrypted_value as ciphertext and nonce concatenated.
+                # The nonce is the last 48 characters of the encrypted value and the remainder of characters is the encrypted_value.
+                nonce_received = onsinfo['encrypted_value'][-48:]
+                nonce = bytes.fromhex(nonce_received)
+
+                # The ciphertext is the encrypted_value with the nonce taken away.
+                ciphertext = bytes.fromhex(onsinfo['encrypted_value'][:-48])
+
+                # If ons type is lokinet we need to add .loki to the name before hashing.
+                if ons_types[ons_type] == 2:
+                    name+='.loki'
+
+                # Calculate the blake2b hash of the lower-case full name
+                name_hash = nacl.hash.blake2b(name.encode(),encoder = nacl.encoding.RawEncoder)
+
+                # Decryption key: another blake2b hash, but this time a keyed blake2b hash where the first hash is the key
+                decryption_key = nacl.hash.blake2b(name.encode(), key=name_hash, encoder = nacl.encoding.RawEncoder)
+                
+                # XChaCha20+Poly1305 decryption
+                val = pysodium.crypto_aead_xchacha20poly1305_ietf_decrypt(ciphertext=ciphertext, ad=b'', nonce=nonce, key=decryption_key)
+                
+                if ons_types[ons_type] == 0:
+                    ons_data[ons_type]['mapping'] = val.hex()
+                    continue
+
+                if ons_types[ons_type] == 1:
+                    network = val[:1] # For mainnet, primary address.  Subaddress is \x74; integrated is \x73; testnet are longer.
+                    
+                    if network == b'\x00':
+                        network = b'\x72'
+
+                    if network == b'\x01':
+                        network = b'\x74'
+
+                    if len(val) > 65:
+                        network = b'\x73'
+
+                    val = val[1:]
+                    keccak_hash = sha3.keccak_256()
+                    keccak_hash.update(network)
+                    keccak_hash.update(val)
+                    checksum = keccak_hash.digest()[0:4]
+
+                    val = network + val + checksum
+
+                    ons_data[ons_type]['mapping'] = base58.encode(val.hex())
+                    continue
+
+                if ons_types[ons_type] == 2:
+                    # val will currently be the raw lokinet ed25519 pubkey (32 bytes).  We can convert it to the more
+                    # common lokinet address (which is the same value but encoded in z-base-32) and convert the bytes to
+                    # a string:
+                    val = b32encode(val).decode()
+
+                    # Python's regular base32 uses a different alphabet, so translate from base32 to z-base-32:
+                    val = val.translate(str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", 
+                                                      "ybndrfg8ejkmcpqxot1uwisza345h769"))
+
+                    # Base32 is also padded with '=', which isn't used in z-base-32:
+                    val = val.rstrip('=')
+
+                    # Finally slap ".loki" on the end:
+                    val += ".loki"
+
+                    ons_data[ons_type]['mapping'] = val
+                    continue
+                    
+
+    if more_details:
+        formatter = HtmlFormatter(cssclass="syntax-highlight", style="paraiso-dark")
+        more_details = {
+                'details_css': formatter.get_style_defs('.syntax-highlight'),
+                'details_html': highlight(json.dumps(ons_data, indent="\t"), JsonLexer(), formatter),
+                }
+    else:
+        more_details = {}
+                
+    return flask.render_template('ons.html',
+            info=info.get(),
+            ons=ons_data,
+            **more_details,
+            )
+
 
 @app.route('/sn/<hex64:pubkey>')
 @app.route('/sn/<hex64:pubkey>/<int:more_details>')
@@ -691,12 +829,12 @@ def show_quorums():
 base32z_dict = 'ybndrfg8ejkmcpqxot1uwisza345h769'
 base32z_map = {base32z_dict[i]: i for i in range(len(base32z_dict))}
 
+
 @app.route('/search')
 def search():
     lmq, oxend = lmq_connection()
     info = FutureJSON(lmq, oxend, 'rpc.get_info', 1)
     val = (flask.request.args.get('value') or '').strip()
-
     if val and len(val) < 10 and val.isdigit(): # Block height
         return flask.redirect(flask.url_for('show_block', height=val), code=301)
 
@@ -708,33 +846,38 @@ def search():
         v >>= 4
         val = "{:64x}".format(v)
 
-    elif not val or len(val) != 64 or any(c not in string.hexdigits for c in val):
-        return flask.render_template('not_found.html',
-                info=info.get(),
-                type='bad_search',
-                id=val,
-                )
+    if len(val) == 64: 
+        # Initiate all the lookups at once, then redirect to whichever one responds affirmatively
+        snreq = sn_req(lmq, oxend, val)
+        blreq = block_header_req(lmq, oxend, val, fail_okay=True)
+        txreq = tx_req(lmq, oxend, [val])
+        
+        sn = snreq.get()
+        if sn and 'service_node_states' in sn and sn['service_node_states']:
+            return flask.redirect(flask.url_for('show_sn', pubkey=val), code=301)
 
-    # Initiate all the lookups at once, then redirect to whichever one responds affirmatively
-    snreq = sn_req(lmq, oxend, val)
-    blreq = block_header_req(lmq, oxend, val, fail_okay=True)
-    txreq = tx_req(lmq, oxend, [val])
+        bl = blreq.get()
+        if bl and 'block_header' in bl and bl['block_header']:
+            return flask.redirect(flask.url_for('show_block', hash=val), code=301)
 
-    sn = snreq.get()
-    if sn and 'service_node_states' in sn and sn['service_node_states']:
-        return flask.redirect(flask.url_for('show_sn', pubkey=val), code=301)
-    bl = blreq.get()
-    if bl and 'block_header' in bl and bl['block_header']:
-        return flask.redirect(flask.url_for('show_block', hash=val), code=301)
-    tx = txreq.get()
-    if tx and 'txs' in tx and tx['txs']:
-        return flask.redirect(flask.url_for('show_tx', txid=val), code=301)
+        tx = txreq.get()
+        if tx and 'txs' in tx and tx['txs']:
+            return flask.redirect(flask.url_for('show_tx', txid=val), code=301)
+
+    if val and len(val) <= 68 and val.endswith(".loki"):
+        val = val.rstrip('.loki')
+
+    # ONS can be of length 64 however with txids, and sn pubkey's being of length 64 
+    # I have removed it from the possible searches.
+    if len(val) < 64 and all(c.isalnum() or c in '_-' for c in val):
+        return flask.redirect(flask.url_for('show_ons', name=val), code=301)    
 
     return flask.render_template('not_found.html',
             info=info.get(),
-            type='search',
+            type='bad_search',
             id=val,
             )
+
 
 @app.route('/api/networkinfo')
 def api_networkinfo():
