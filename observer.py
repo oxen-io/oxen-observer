@@ -21,7 +21,7 @@ from io import BytesIO
 import pysodium
 import nacl.encoding
 import nacl.hash
-import moneropy.base58 as b58
+import base58
 import sha3
 import config
 import local_config
@@ -514,7 +514,7 @@ def show_ons(name, more_details=False):
 
                     val = network + val + checksum
 
-                    ons_data[ons_type]['mapping'] = b58.encode(val.hex())
+                    ons_data[ons_type]['mapping'] = base58.encode(val.hex())
                     continue
 
                 if ons_types[ons_type] == 2:
