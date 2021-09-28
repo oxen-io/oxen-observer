@@ -14,11 +14,11 @@
             {% endif -%}
         {% elif tx.info.type == 2 -%}
             <span class="icon" title="Service Node stake unlock — {{tx.extra.sn_pubkey}}">🔓{%if text%} unlock{%endif%}</span>
-        {% elif tx.info.type == 4 and 'lns' in tx.extra -%}
-            {% if 'buy' in tx.extra.lns -%}
-                <span class="icon" title="Loki Name Service Buying">🎫{%if text%} LNS purchase{%endif%}</span>
-            {% elif 'update' in tx.extra.lns -%}
-                <span class="icon" title="Loki Name Service Updating">💾{%if text%} LNS update{%endif%}</span>
+        {% elif tx.info.type == 4 and 'ons' in tx.extra -%}
+            {% if 'buy' in tx.extra.ons -%}
+                <span class="icon" title="Oxen Name Service Buying">🎫{%if text%} LNS purchase{%endif%}</span>
+            {% elif 'update' in tx.extra.ons -%}
+                <span class="icon" title="Oxen Name Service Updating">💾{%if text%} LNS update{%endif%}</span>
             {% endif -%}
         {% elif 'sn_registration' in tx.extra -%}
             <span class="icon" title="Service Node registration
