@@ -38,7 +38,7 @@ else:
 
 app = flask.Flask(__name__)
 
-app.jinja_options['extensions'].append('jinja2.ext.loopcontrols')
+app.jinja_options['extensions'] = ['jinja2.ext.loopcontrols']
 
 class Hex64Converter(BaseConverter):
     def __init__(self, url_map):
