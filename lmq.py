@@ -1,19 +1,19 @@
-import pylokimq
+import oxenmq
 import config
 import json
 import sys
 from datetime import datetime, timedelta
 
-lmq, oxend = None, None
-def lmq_connection():
-    global lmq, oxend
-    if lmq is None:
-        lmq = pylokimq.LokiMQ(pylokimq.LogLevel.warn)
-        lmq.max_message_size = 200*1024*1024
-        lmq.start()
+omq, oxend = None, None
+def omq_connection():
+    global omq, oxend
+    if omq is None:
+        omq = oxenmq.OxenMQ(log_level=oxenmq.LogLevel.warn)
+        omq.max_message_size = 200*1024*1024
+        omq.start()
     if oxend is None:
-        oxend = lmq.connect_remote(config.oxend_rpc)
-    return (lmq, oxend)
+        oxend = omq.connect_remote(config.oxend_rpc)
+    return (omq, oxend)
 
 cached = {}
 cached_args = {}
@@ -30,9 +30,9 @@ class FutureJSON():
     Cache entries are *not* purged, they are only replaced, so using dynamic data in the key would
     result in unbounded memory growth.
 
-    lmq - the lmq object
-    oxend - the oxend lmq connection id object
-    endpoint - the lmq endpoint, e.g. 'rpc.get_info'
+    omq - the omq object
+    oxend - the oxend omq connection id object
+    endpoint - the omq endpoint, e.g. 'rpc.get_info'
     cache_seconds - how long to cache the response; can be None to not cache it at all
     cache_key - fixed string to enable different caches of the same endpoint
     args - if not None, a value to pass (after converting to JSON) as the request parameter. Typically a dict.
@@ -40,7 +40,7 @@ class FutureJSON():
     timeout - maximum time to spend waiting for a reply
     """
 
-    def __init__(self, lmq, oxend, endpoint, cache_seconds=3, *, cache_key='', args=None, fail_okay=False, timeout=10):
+    def __init__(self, omq, oxend, endpoint, cache_seconds=3, *, cache_key='', args=None, fail_okay=False, timeout=10):
         self.endpoint = endpoint
         self.cache_key = self.endpoint + cache_key
         self.fail_okay = fail_okay
@@ -53,7 +53,7 @@ class FutureJSON():
         else:
             self.json = None
             self.args = args
-            self.future = lmq.request_future(oxend, self.endpoint, [] if self.args is None else [self.args], timeout=timeout)
+            self.future = omq.request_future(oxend, self.endpoint, [] if self.args is None else [self.args], timeout=timeout)
         self.cache_seconds = cache_seconds
 
     def get(self):
