@@ -467,7 +467,7 @@ td span.checkpoint-not-signed { color: #c50022; }
     text-overflow: ellipsis;
 }
 
-h3 .sn-count {
+h3 .sn-count, h4 .sn-count {
     font-weight: bold;
 }
 

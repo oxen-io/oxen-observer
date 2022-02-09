@@ -352,6 +352,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None, style=None)
             emission=coinbase.get(),
             hf=hfinfo.get(),
             active_sns=active_sns,
+            active_swarms=len(set(x['swarm_id'] for x in active_sns)),
             inactive_sns=inactive_sns,
             awaiting_sns=awaiting_sns,
             blocks=blocks,
@@ -385,6 +386,7 @@ def sns():
     return flask.render_template('service_nodes.html',
         info=info.get(),
         active_sns=active,
+        active_swarms=len(set(x['swarm_id'] for x in active)),
         awaiting_sns=awaiting,
         inactive_sns=inactive,
         )
