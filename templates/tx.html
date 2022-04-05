@@ -108,7 +108,7 @@
             {%if show_reasons%}
                 <h3>{%if tx.extra.sn_state_change.type == 'decom'%}Decommission{%else%}Deregistration{%endif%} Reason(s):</h3>
                 <ul>
-                    {%if tx.extra.sn_state_change.reasons or tx.extra.sn_state_change.reasons%}
+                    {%if tx.extra.sn_state_change.reasons or tx.extra.sn_state_change.reasons_maybe%}
                         {%if tx.extra.sn_state_change.reasons%}
                             {%for r in tx.extra.sn_state_change.reasons%}
                                 <li>{{ readable_reason.display(r) }}</li>
