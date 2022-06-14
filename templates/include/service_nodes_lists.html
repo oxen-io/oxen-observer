@@ -18,7 +18,7 @@
 
     <h2 style="margin-bottom: 0px">Active Service Nodes <span class="sn-count">({{active_sns | count}})</span></h2>
     <h4 class="Subtitle">Current storage swarm count:
-        <span class="sn-count" title="= {{"%.2f"|format(active_sns | count / active_swarms)}} SNs per swarm">{{active_swarms}}</span>
+        <span class="sn-count"{%if active_swarms > 0%} title="= {{"%.2f"|format(active_sns | count / active_swarms)}} SNs per swarm"{%endif%}>{{active_swarms}}</span>
     </h4>
     <div class="TitleDivider sn-active"></div>
     {%include 'include/sn_active.html'%}

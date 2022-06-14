@@ -13,6 +13,7 @@
     </thead>
 
     <tbody>
+        {%set max_contributors = 10 if 'hard_fork' in info and info.hard_fork >= 19 else 4 %}
         {%for sn in (awaiting_sns | sort(attribute='portions_for_operator,contribution_open,contribution_required,service_node_pubkey'))[:limit_awaiting]%}
             <tr>
                 {%include 'include/sn_kcf.html'%}
@@ -24,7 +25,7 @@
                 {%else%}
                     <td>{{sn.contribution_open | oxen(tag=false, fixed=true)}}</td>
                 {%endif%}
-                <td>{{ (0 if sn.num_contributions >= 4 else (sn.contribution_open / (4 - sn.num_contributions)) | round(method='ceil')) | oxen(tag=false, fixed=true) }}</td>
+                <td>{{ (0 if sn.num_contributions >= 4 else (sn.contribution_open / (max_contributors - sn.num_contributions)) | round(method='ceil')) | oxen(tag=false, fixed=true) }}</td>
                 <td>
                     {%if sn.requested_unlock_height%}
                         <span title="Service Node unlock in progress (unlocks at block {{sn.requested_unlock_height}})">🔓</span>

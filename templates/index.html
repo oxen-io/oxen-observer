@@ -60,7 +60,7 @@
         {% if info %}
             <h3 class="general_info info_list nowrap-spans">
                 <span><label>Height:</label> {{info.height}}</span>
-                <span><label>Hard fork:</label> v{{hf.version}}</span>
+                <span><label>Hard fork:</label> v{{hf.version}}{%if 'revision' in hf%}.{{hf.revision}}{%endif%}</span>
                 {% if hf.version >= 16 %}
                     <span title="{{ info.pulse_target_timestamp | from_timestamp | format_datetime }}
                                  {%-if info.pulse_target_timestamp != info.pulse_ideal_timestamp %}
@@ -97,9 +97,10 @@
                     (still calculating...)</span>
                 {% elif emission.status == 'OK' %}
                     {{(emission.emission_amount - emission.burn_amount) | oxen}}</span>
-                <span><label>(Coinbase:</label> {{emission.emission_amount | oxen}}</span>
-                <span><label>Fees:</label> {{emission.fee_amount | oxen}}</span>
-                <span><label>Burned:</label> {{emission.burn_amount | oxen}}<label>).</label></span>
+                <span title="Gross emitted coins"><label>(Coinbase:</label> {{emission.emission_amount | oxen}}</span>
+                <span title="Transfers paid as transaction fees"><label>Fees:</label> {{emission.fee_amount | oxen}}</span>
+                <span title="Permanently destroyed (&quot;burned&quot;) fees"><label>Burned:</label> {{emission.burn_amount | oxen}}</span>
+                <span title="Accrued batch rewards not yet paid out"><label>Batched:</label> {{accrued_total | oxen}}</span><label>).</label>
                 {%endif%}
             <p style="padding: 0px; margin-top: 2px; font-size: 0.9em">
             * — The circulating supply may exclude any currently publicised locked OXEN; otherwise it is equal to the coinbase minus the number of burned coins.
@@ -156,7 +157,7 @@
                 <td>Type</td>
                 <td>Transaction Hash</td>
                 <td>Fee</td>
-                <td>Outputs</td>
+                <td title="Batched reward payments">Rewards</td>
                 <td>In/Out</td>
                 <td>TX Size</td>
             </tr>
@@ -165,7 +166,9 @@
             {% import 'include/tx_type_symbol.html' as symbol %}
             {% import 'include/tx_fee.html' as fee %}
             {% for b in blocks | reverse %}
-              {% if b.txs | length > 0 %}
+              {% set tx_i = 0 %}
+              {% if b.txs | length > 0 and b.txs[0].coinbase %}
+                {% set tx_i = 1 %}
                 <tr class="block">
                   <td><a href="/block/{{b.height}}">{{b.height}}</a></td>
                   <td title="{{b.timestamp | from_timestamp | format_datetime}}">{{b.timestamp | from_timestamp | ago}}</td>
@@ -173,7 +176,7 @@
                   <td>{{symbol.display(b.txs[0])}}</td>
                   <td><a href="/tx/{{b.txs[0].tx_hash}}">{{b.txs[0].tx_hash}}</a></td>
                   <td>{{fee.display(b.txs[0])}}</td>
-                  <td>{{b.reward | oxen(tag=False, fixed=True, decimals=2)}}</td>
+                  <td>{{b.coinbase_payouts | oxen(tag=False, fixed=True, decimals=2)}}</td>
                   <td>0/{{b.txs[0].info.vout | length}}</td>
                   <td>{{b.txs[0].size | si}}</td>
                 </tr>
@@ -186,12 +189,12 @@
                   <td></td>
                   <td></td>
                   <td></td>
-                  <td>{{b.reward | oxen(tag=False, fixed=True, decimals=2)}}</td>
+                  <td></td>
                   <td></td>
                   <td></td>
                 </tr>
               {%endif%}
-              {% for tx in b.txs[1:] %}
+              {% for tx in b.txs[tx_i:] %}
                 <tr class="tx">
                   <td></td>
                   <td></td>

@@ -272,6 +272,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None, style=None)
     stake = FutureJSON(omq, oxend, 'rpc.get_staking_requirement', 10)
     base_fee = FutureJSON(omq, oxend, 'rpc.get_fee_estimate', 10)
     hfinfo = FutureJSON(omq, oxend, 'rpc.hard_fork_info', 10)
+    accrued = FutureJSON(omq, oxend, 'rpc.get_accrued_batched_earnings', 1)
     mempool = get_mempool_future(omq, oxend)
     sns = get_sns_future(omq, oxend)
     checkpoints = FutureJSON(omq, oxend, 'rpc.get_checkpoints', args={"count": 3})
@@ -350,6 +351,7 @@ def main(refresh=None, page=0, per_page=None, first=None, last=None, style=None)
             stake=stake.get(),
             fees=base_fee.get(),
             emission=coinbase.get(),
+            accrued_total=sum(accrued.get()['amounts']),
             hf=hfinfo.get(),
             active_sns=active_sns,
             active_swarms=len(set(x['swarm_id'] for x in active_sns)),
@@ -647,7 +649,9 @@ def get_block_txs_future(omq, oxend, block):
     hashes = []
     if 'tx_hashes' in block:
         hashes += block['tx_hashes']
-    hashes.append(block['block_header']['miner_tx_hash'])
+    miner_tx = block['block_header'].get('miner_tx_hash')
+    if miner_tx:
+        hashes.append(miner_tx)
     if 'info' not in block:
         try:
             block['info'] = json.loads(block["json"])
@@ -699,7 +703,7 @@ def show_block(height=None, hash=None, more_details=False):
         more_details = {}
 
     transactions = [] if txs is None else parse_txs(txs.get()).copy()
-    miner_tx = transactions.pop() if transactions else []
+    miner_tx = transactions.pop() if block['block_header'].get('miner_tx_hash') else None
 
     return flask.render_template("block.html",
             info=info.get(),
