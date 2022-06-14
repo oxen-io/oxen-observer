@@ -95,12 +95,32 @@
 
     {%if info.service_node%}{# SN tests are only conducted by SNs #}
       <span>
-        <label{%if not sn.storage_server_reachable%} class="omg warning"{%endif%}>Storage server:</label>
-        {%if sn.storage_server_reachable_timestamp == 0%}
+        <label{%if sn.storage_server_last_unreachable > sn.storage_server_last_reachable%} class="omg warning"{%endif%}>Storage server:</label>
+        {%if sn.storage_server_last_reachable == 0 and sn.storage_server_last_unreachable == 0%}
           Not yet tested
+        {%elif sn.storage_server_last_reachable >= sn.storage_server_last_unreachable%}
+          <span title="Last unreachable: {%if sn.storage_server_last_unreachable == 0%}Unknown{%else%}{{sn.storage_server_last_unreachable | from_timestamp | ago}} ago{%endif%}">
+            Reachable (as of {{sn.storage_server_last_reachable | from_timestamp | ago}} ago
+          </span>
         {%else%}
-          {%if sn.storage_server_reachable%}Reachable{%else%}Not reachable{%endif%}
-          (as of {{sn.last_uptime_proof | from_timestamp | ago}} ago)
+          <span title="Last reachable: {%if sn.storage_server_last_reachable == 0%}Unknown{%else%}{{sn.storage_server_last_reachable | from_timestamp | ago}} ago{%endif%}">
+          Not reachable (as of {{sn.storage_server_last_unreachable | from_timestamp | ago}} ago)
+          </span>
+        {%endif%}
+      </span>
+
+      <span>
+        <label{%if sn.lokinet_last_unreachable > sn.lokinet_last_reachable%} class="omg warning"{%endif%}>Lokinet:</label>
+        {%if sn.lokinet_last_reachable == 0 and sn.lokinet_last_unreachable == 0%}
+          Not yet tested
+        {%elif sn.lokinet_last_reachable >= sn.lokinet_last_unreachable%}
+          <span title="Last unreachable: {%if sn.lokinet_last_unreachable == 0%}Unknown{%else%}{{sn.lokinet_last_unreachable | from_timestamp | ago}} ago{%endif%}">
+            Reachable (as of {{sn.lokinet_last_reachable | from_timestamp | ago}} ago
+          </span>
+        {%else%}
+          <span title="Last reachable: {%if sn.lokinet_last_reachable == 0%}Unknown{%else%}{{sn.lokinet_last_reachable | from_timestamp | ago}} ago{%endif%}">
+          Not reachable (as of {{sn.lokinet_last_unreachable | from_timestamp | ago}} ago)
+          </span>
         {%endif%}
       </span>
     {%endif%}
