@@ -19,6 +19,11 @@
         <h4 style="margin:5px"><label>Lokinet Address:</label> {{sn.pubkey_ed25519 | base32z}}.snode</h4>
       {%endif%}
       <h4 style="margin:5px"><label>Operator Address:</label> {{sn.operator_address}}</h4>
+      <h4 style="margin:5px"><label>Country:</label> {{sn.country}}</h4>
+      {%if sn.city %}
+        <h4 style="margin:5px"><label>City:</label> {{sn.city}}</h4>
+      {%endif%}
+      <h4 style="margin:5px"><label>Network:</label> {{sn.asn}}</h4>
     </div>
     <img class="qr" src="/qr/{{sn.service_node_pubkey}}" title="{{sn.service_node_pubkey}}">
   </div>

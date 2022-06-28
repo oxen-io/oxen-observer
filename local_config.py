@@ -6,3 +6,4 @@ from observer import config
 # Example config override:
 #config.blocks_per_page = 10
 
+config.geoip_dir = '/var/lib/GeoIP'

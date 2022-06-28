@@ -7,6 +7,7 @@
             <td>Decommission Height</td>
             <td>Last Uptime Proof</td>
             <td>Blocks until Dereg.</td>
+            <td>Country</td>
         </tr>
     </thead>
 
@@ -19,6 +20,7 @@
                 <td>{%if sn.decomm_blocks_remaining > 0%}{{sn.decomm_blocks_remaining}} ({{(sn.decomm_blocks_remaining * 120) | reltime}})
                         {%-else%}None (deregistration imminent!)
                         {%-endif%}</td>
+                <td>{{sn.country}}</td>
             </tr>
         {%endfor%}
 

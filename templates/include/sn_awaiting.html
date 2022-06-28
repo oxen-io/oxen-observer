@@ -9,6 +9,7 @@
             <td>Open For Contribution</td>
             <td>Min. Contribution</td>
             <td>Expiry Date UTC (Estimated)</td>
+            <td>Country</td>
         </tr>
     </thead>
 
@@ -35,6 +36,7 @@
                         Staking Infinitely
                     {%endif%}
                 </td>
+                <td>{{sn.country}}</td>
             </tr>
         {%endfor%}
         {%if limit_awaiting and (awaiting_sns | length) > limit_awaiting%}
