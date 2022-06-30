@@ -5,19 +5,19 @@
             <td>Contri&shy;butors</td>
             <td>Operator Fee (%)</td>
             <td>Staking Requirement</td>
-            <td title="Can also be the height of the last activation, IP penalty, or recommission">Last Reward Height</td>
+            <td title="Can also be the height of the last IP penalty or recommission">Active Since Height</td>
             <td>Last Uptime Proof</td>
             <td>Expiry Date UTC (Estimated)</td>
         </tr>
     </thead>
 
     <tbody>
-        {%for sn in (active_sns | sort(attribute='last_reward_block_height,last_reward_transaction_index,service_node_pubkey'))[:limit_active]%}
+        {%for sn in (active_sns | sort(attribute='last_uptime_proof,service_node_pubkey'))[:limit_active]%}
 
             <tr>
                 {%include 'include/sn_kcf.html'%}
                 <td>{{sn.staking_requirement | oxen(tag=false, fixed=true)}}</td>
-                <td>{{sn.last_reward_block_height}}</td>
+                <td>{{sn.state_height}}</td>
                 <td>{{sn.last_uptime_proof | from_timestamp | ago if sn.last_uptime_proof > 0 else "Not Received"}}</td>
                 <td>
                     {%if sn.requested_unlock_height%}
