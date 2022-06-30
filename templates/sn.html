@@ -19,7 +19,7 @@
         <h4 style="margin:5px"><label>Lokinet Address:</label> {{sn.pubkey_ed25519 | base32z}}.snode</h4>
       {%endif%}
       <h4 style="margin:5px"><label>Operator Address:</label> {{sn.operator_address}}</h4>
-      <h4 style="margin:5px"><label>Country:</label> {{sn.country}}</h4>
+      <h4 style="margin:5px"><label>Country:</label> {{sn.country}} &nbsp;&nbsp;<img style="width:15px;height:10x;" src="../flags/{{sn.iso_code}}.png"></h4>
       {%if sn.city %}
         <h4 style="margin:5px"><label>City:</label> {{sn.city}}</h4>
       {%endif%}

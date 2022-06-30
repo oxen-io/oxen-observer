@@ -199,6 +199,7 @@ def get_sns(sns_future, info_future):
         sn['contribution_required'] = sn['staking_requirement'] - sn['total_contributed']
         sn['num_contributions'] = sum(len(x['locked_contributions']) for x in sn['contributors'] if 'locked_contributions' in x)
         sn['country'] = geoip.city(sn['public_ip']).country.names['en']
+        sn['iso_code'] = geoip.city(sn['public_ip']).country.iso_code
 
         if sn['active']:
             active_sns.append(sn)
@@ -593,6 +594,7 @@ def show_sn(pubkey, more_details=False):
     # Available open contribution spots:
     sn['num_open_spots'] = 0 if sn['total_reserved'] >= sn['staking_requirement'] else max(0, 4 - sn['num_contributions'] - sn['num_reserved_spots'])
     sn['country'] = geoip_c.city(sn['public_ip']).country.names['en']
+    sn['iso_code'] = geoip_c.city(sn['public_ip']).country.iso_code
     city = geoip_c.city(sn['public_ip']).city
     if city.names:
         sn['city'] = city.names['en']
