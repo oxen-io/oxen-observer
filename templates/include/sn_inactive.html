@@ -20,7 +20,7 @@
                 <td>{%if sn.decomm_blocks_remaining > 0%}{{sn.decomm_blocks_remaining}} ({{(sn.decomm_blocks_remaining * 120) | reltime}})
                         {%-else%}None (deregistration imminent!)
                         {%-endif%}</td>
-                <td style="text-align:left;"><img style="width:15px;height:10px;" src="flags/{{sn.iso_code}}.png"> {{sn.country}}</td>
+                <td style="text-align:left;"><img style="width:15px;height:10px;" src="/flags/{{sn.iso_code}}.png"> {{sn.country}}</td>
             </tr>
         {%endfor%}
 
