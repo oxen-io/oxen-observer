@@ -250,11 +250,12 @@ def parse_mempool(mempool_future):
 
 @app.context_processor
 def template_globals():
+    now = datetime.now(timezone.utc)
     return {
         'config': conf,
         'server': {
-            'datetime': datetime.now(timezone.utc),
-            'timestamp': datetime.utcnow().timestamp(),
+            'datetime': now,
+            'timestamp': now.timestamp(),
             'revision': git_rev,
         },
     }
