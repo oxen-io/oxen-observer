@@ -5,7 +5,7 @@ awesome, safe.
 
 ## Prerequisite packages 
 
-    sudo apt install build-essential pkg-config libsodium-dev libzmq3-dev python3-dev python3-flask python3-babel python3-pygments python3-oxenmq
+    sudo apt install build-essential pkg-config libsodium-dev libzmq3-dev python3-dev python3-flask python3-babel python3-pygments python3-oxenmq python3-sha3 python3-nacl python3-pysodium python3-qrcode
 
 Note that the last requirement (python3-oxenmq) comes from the Oxen repository (https://deb.oxen.io).
 
@@ -46,29 +46,29 @@ Create a "vassal" config for oxen-observer, `/etc/uwsgi-emperor/vassals/oxen-obs
 Set ownership of this user to whatever user you want it to run as, and set the group to `_loki` (so
 that it can open the oxend unix socket):
 
-    chown MYUSERNAME:_loki /etc/uwsgi-emperor/vassals/loki-observer.ini
+    chown MYUSERNAME:_loki /etc/uwsgi-emperor/vassals/oxen-observer.ini
 
 In the oxen-observer/mainnet.py, set:
 
-    config.oxend_rpc = 'ipc:///var/lib/loki/oxend.sock'
+    config.oxend_rpc = 'ipc:///var/lib/oxen/oxend.sock'
 
 and finally, proxy requests from the webserver to the wsgi socket.  For Apache I do this with:
 
     # Allow access to static files (e.g. .css and .js):
-    <Directory /path/to/loki-observer/static>
+    <Directory /path/to/oxen-observer/static>
         Require all granted
     </Directory>
-    DocumentRoot /home/jagerman/src/loki-observer/static
+    DocumentRoot /home/jagerman/src/oxen-observer/static
 
     # Proxy everything else via the uwsgi socket:
     ProxyPassMatch "^/[^/]*\.(?:css|js)(?:$|\?)" !
-    ProxyPass / unix:/path/to/loki-observer/mainnet.wsgi|uwsgi://uwsgi-mainnet-observer/
+    ProxyPass / unix:/path/to/oxen-observer/mainnet.wsgi|uwsgi://uwsgi-mainnet-observer/
 
 (you will probably need to `a2enmod proxy_uwsgi` to enable the Apache modules that make that work).
 
 That should be it: restart apache2 and uwsgi-emperor and you should be good to go.  If you want to
 make uwsgi restart (for example because you are changing things) then it is sufficient to `touch
-/etc/uwsgi-emperor/vassals/loki-observer.ini` to trigger a reload (you do not have to restart the
+/etc/uwsgi-emperor/vassals/oxen-observer.ini` to trigger a reload (you do not have to restart the
 apache2/uwsgi-emperor layers).
 
 If you want to set up a testnet or devnet observer the procedure is essentially the same, but
