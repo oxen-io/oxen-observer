@@ -219,7 +219,7 @@ This tx does not includes a vote from this testing service node (only 7 votes ar
     {%if tx.vout%}
         <h2>Outputs</h2>
         <h4 class="Subtitle">{{tx.vout|length}} output(s) for total of
-            {{tx.vout | sum(attribute='amount') | oxen(zero='<span title="Regular LOKI tx amounts are private">???</span>') | safe}}</h4>
+            {{tx.vout | sum(attribute='amount') | oxen(zero='<span title="Regular OXEN tx amounts are private">???</span>') | safe}}</h4>
         <div class="TitleDivider"></div>
         <div class="tx-outputs">
             <table class="Table">
@@ -554,7 +554,7 @@ This tx does not includes a vote from this testing service node (only 7 votes ar
 
       <h2>Inputs</h2>
       <h4 class="Subtitle">{{tx.vin|length}} input(s) for total of
-        {{tx.vin | sum(attribute='key.amount') | oxen(zero='<span title="Regular LOKI tx amounts are private">???</span>') | safe}}</h4>
+        {{tx.vin | sum(attribute='key.amount') | oxen(zero='<span title="Regular OXEN tx amounts are private">???</span>') | safe}}</h4>
       <div class="TitleDivider"></div>
 
       {#FIXME#}
