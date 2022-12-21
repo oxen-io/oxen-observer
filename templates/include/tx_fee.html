@@ -1,6 +1,6 @@
 {% macro display(tx, show_zero=false) -%}
     {% set fee =
-        (tx.info.rct_signatures.txnFee if 'rct_signatures' in tx.info and 'txnFee' in tx.info.rct_signatures else 0)
+        (tx.rct_signatures.txnFee if 'rct_signatures' in tx and 'txnFee' in tx.rct_signatures else 0)
     -%}
     {% if fee > 0 or show_zero -%}
         {{ fee | oxen(tag=False, fixed=True, decimals=4) }}
