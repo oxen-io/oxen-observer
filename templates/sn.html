@@ -60,7 +60,7 @@
     </span>
 
     {%if 'total_reserved' in sn and sn.total_reserved != sn.total_contributed%}
-      <span><label>Reserved stakes:</label> {{sn.total_reserved - sn.total_contributed | oxen}}</span>
+      <span><label>Reserved stakes:</label> {{(sn.total_reserved - sn.total_contributed) | oxen}}</span>
     {%endif%}
 
     <span>
