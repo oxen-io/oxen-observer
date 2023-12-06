@@ -5,7 +5,7 @@ awesome, safe.
 
 ## Prerequisite packages 
 
-    sudo apt install build-essential pkg-config libsodium-dev libzmq3-dev python3-dev python3-flask python3-babel python3-pygments python3-oxenmq python3-sha3 python3-nacl python3-pysodium python3-qrcode
+    sudo apt install build-essential pkg-config libsodium-dev libzmq3-dev python3-dev python3-flask python3-babel python3-pygments python3-oxenmq python3-pycryptodome python3-nacl python3-pysodium python3-qrcode
 
 Note that the last requirement (python3-oxenmq) comes from the Oxen repository (https://deb.oxen.io).
 
