@@ -22,7 +22,7 @@ import pysodium
 import nacl.encoding
 import nacl.hash
 import base58
-import sha3
+from Cryptodome.Hash import keccak
 import config
 import local_config
 from lmq import FutureJSON, omq_connection
@@ -517,7 +517,7 @@ def show_ons(name, more_details=False):
                         network = b'\x73'
 
                     val = val[1:]
-                    keccak_hash = sha3.keccak_256()
+                    keccak_hash = keccak.new(digest_bits=256)
                     keccak_hash.update(network)
                     keccak_hash.update(val)
                     checksum = keccak_hash.digest()[0:4]
