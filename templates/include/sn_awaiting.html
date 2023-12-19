@@ -18,7 +18,8 @@
             <tr>
                 {%include 'include/sn_kcf.html'%}
                 <td>{{sn.total_contributed | oxen(tag=false, fixed=true)}}</td>
-                {%if sn.total_reserved >= sn.staking_requirement%}
+                {% set total_stakes = sn.total_reserved if 'total_reserved' in sn else sn.total_contributed %}
+                {%if total_stakes >= sn.staking_requirement%}
                     <td title="All remaining contribution room is reserved for specific contributors">
                         ⛔ {{sn.contribution_open | oxen(tag=false, fixed=true)}}
                     </td>

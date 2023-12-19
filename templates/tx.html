@@ -46,7 +46,7 @@
           <span title="Unix timestamp: {{tx.received_timestamp}}"><label>In mempool since:</label> {{tx.received_timestamp | from_timestamp | format_datetime('short')}} UTC
           ({{tx.received_timestamp | from_timestamp | ago}} ago)</span>
         {%endif%}
-        <span><label>TX Version/Type:</label> {{tx.info.version}}/{{sym.display(tx, text=true)}}</span>
+        <span><label>TX Version/Type:</label> {{tx.version}}/{{sym.display(tx, text=true)}}</span>
         {%if not have_raw_tx%}
           {%if 'block_timestamp' in tx%}
             <span title="Unix timestamp: {{tx.block_timestamp}}"><label>Timestamp:</label> {{tx.block_timestamp | from_timestamp | format_datetime('short')}} UTC
@@ -56,17 +56,17 @@
 
         {# FIXME - if in mempool then link to mempool page instead #}
         <span><label>Fee (Per kB):</label>
-            {%if tx.coinbase or 'rct_signatures' not in tx.info%}
+            {%if tx.coinbase or 'rct_signatures' not in tx%}
                 N/A
             {%else%}
                 {{fee.display(tx)}}
-                ({{(tx.info.rct_signatures.txnFee * 1000 / tx.size) | oxen(tag=false, decimals=6)}})
+                ({{(tx.rct_signatures.txnFee * 1000 / tx.size) | oxen(tag=false, decimals=6)}})
             {%endif%}
         </span>
         <span title="{{tx.size}} bytes"><label>TX Size:</label> {{tx.size|si}}B</span>
 
         <span><label>No. Confirmations:</label> {%if 'block_height' in tx%}{{info.height - tx.block_height}}{%else%}None (in mempool){%endif%}</span>
-        <span><label>RingCT/RingCT Type:</label> {%if tx.info.version >= 2 and 'rct_signatures' in tx.info and not tx.coinbase%}Yes/{{tx.info.rct_signatures.type}}{%else%}No{%endif%}</span>
+        <span><label>RingCT/RingCT Type:</label> {%if tx.version >= 2 and 'rct_signatures' in tx and not tx.coinbase%}Yes/{{tx.rct_signatures.type}}{%else%}No{%endif%}</span>
 
         {%if tx.coinbase and tx.extra.sn_winner%}
           <span><label>Service Node Winner:</label>
@@ -78,10 +78,10 @@
           </span>
         {%endif%}
     </h4>
-    <div class="info-item"><label>Extra: </label>{{tx.info.extra}}</div>
+    <div class="info-item"><label>Extra: </label>{{tx.tx_extra_raw}}</div>
 
-    {% if tx.info.version >= 4 -%}
-        {% if tx.info.type == 1 and 'sn_state_change' in tx.extra %}
+    {% if tx.version >= 4 -%}
+        {% if tx.type == 1 and 'sn_state_change' in tx.extra %}
             <h2>
             {%- set show_reasons = false -%}
             {% if tx.extra.sn_state_change.type == 'decom' -%}
@@ -159,12 +159,12 @@ This tx does not includes a vote from this testing service node (only 7 votes ar
                 </div>
             {%endif%}
 
-        {% elif tx.info.type == 2 %}
+        {% elif tx.type == 2 %}
             <h2>🔓 Service Node Unlock</h2>
             <p class="unlock-pubkey"><label>Service Node Public Key:</label> <a href="/sn/{{tx.extra.sn_pubkey}}">{{tx.extra.sn_pubkey}}</a></p>
             <p><label>Unlock key image:</label> {{unlock_key_image}}</p> {# FIXME #}
             <p><label>Unlock signature:</label> {{unlock_signature}}</p> {# FIXME #}
-        {% elif tx.info.type == 4 and 'lns' in tx.extra %}
+        {% elif tx.type == 4 and 'lns' in tx.extra %}
             {% if 'buy' in tx.extra.lns %}
                 <h2>🎫 Oxen Name Service Registration</h2>
             {% elif 'update' in tx.extra.lns %}
@@ -216,10 +216,10 @@ This tx does not includes a vote from this testing service node (only 7 votes ar
     {% endif %}
 
 
-    {%if tx.info.vout%}
+    {%if tx.vout%}
         <h2>Outputs</h2>
-        <h4 class="Subtitle">{{tx.info.vout|length}} output(s) for total of
-            {{tx.info.vout | sum(attribute='amount') | oxen(zero='<span title="Regular LOKI tx amounts are private">???</span>') | safe}}</h4>
+        <h4 class="Subtitle">{{tx.vout|length}} output(s) for total of
+            {{tx.vout | sum(attribute='amount') | oxen(zero='<span title="Regular OXEN tx amounts are private">???</span>') | safe}}</h4>
         <div class="TitleDivider"></div>
         <div class="tx-outputs">
             <table class="Table">
@@ -232,7 +232,7 @@ This tx does not includes a vote from this testing service node (only 7 votes ar
                 </thead>
 
                 <tbody>
-                    {%for out in tx.info.vout%}
+                    {%for out in tx.vout%}
                         <tr>
                             <td><label>{{loop.index0}}:</label> {{out.target.key}}</td>
                             <td>{{out.amount | oxen(zero='?')}}</td>
@@ -549,12 +549,12 @@ This tx does not includes a vote from this testing service node (only 7 votes ar
     {%endif%}
     #}
 
-    {%if not tx.coinbase and tx.info.vin|length > 0 %}
+    {%if not tx.coinbase and tx.vin|length > 0 %}
       <div style="height: 1em"></div>
 
       <h2>Inputs</h2>
-      <h4 class="Subtitle">{{tx.info.vin|length}} input(s) for total of
-        {{tx.info.vin | sum(attribute='key.amount') | oxen(zero='<span title="Regular LOKI tx amounts are private">???</span>') | safe}}</h4>
+      <h4 class="Subtitle">{{tx.vin|length}} input(s) for total of
+        {{tx.vin | sum(attribute='key.amount') | oxen(zero='<span title="Regular OXEN tx amounts are private">???</span>') | safe}}</h4>
       <div class="TitleDivider"></div>
 
       {#FIXME#}
@@ -574,7 +574,7 @@ This tx does not includes a vote from this testing service node (only 7 votes ar
 
       <div class="tx-inputs">
         <table class="Table">
-          {%for inp in tx.info.vin if 'key' in inp%}
+          {%for inp in tx.vin if 'key' in inp%}
             <tr class="tx-input-key-image">
               <td style="text-align: left;" colspan="2">
                 <label>Key Image {{loop.index0}}:</label> {{inp.key.k_image}}

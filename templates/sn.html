@@ -59,8 +59,8 @@
       {%endif%}
     </span>
 
-    {%if sn.total_reserved != sn.total_contributed%}
-      <span><label>Total reserved:</label> {{sn.total_reserved | oxen}}</span>
+    {%if 'total_reserved' in sn and sn.total_reserved != sn.total_contributed%}
+      <span><label>Reserved stakes:</label> {{(sn.total_reserved - sn.total_contributed) | oxen}}</span>
     {%endif%}
 
     <span>
@@ -94,35 +94,10 @@
     </span>
 
     {%if info.service_node%}{# SN tests are only conducted by SNs #}
-      <span>
-        <label{%if sn.storage_server_last_unreachable > sn.storage_server_last_reachable%} class="omg warning"{%endif%}>Storage server:</label>
-        {%if sn.storage_server_last_reachable == 0 and sn.storage_server_last_unreachable == 0%}
-          Not yet tested
-        {%elif sn.storage_server_last_reachable >= sn.storage_server_last_unreachable%}
-          <span title="Last unreachable: {%if sn.storage_server_last_unreachable == 0%}Unknown{%else%}{{sn.storage_server_last_unreachable | from_timestamp | ago}} ago{%endif%}">
-            Reachable (as of {{sn.storage_server_last_reachable | from_timestamp | ago}} ago
-          </span>
-        {%else%}
-          <span title="Last reachable: {%if sn.storage_server_last_reachable == 0%}Unknown{%else%}{{sn.storage_server_last_reachable | from_timestamp | ago}} ago{%endif%}">
-          Not reachable (as of {{sn.storage_server_last_unreachable | from_timestamp | ago}} ago)
-          </span>
-        {%endif%}
-      </span>
+      {% import 'include/reachable.html' as reachable %}
 
-      <span>
-        <label{%if sn.lokinet_last_unreachable > sn.lokinet_last_reachable%} class="omg warning"{%endif%}>Lokinet:</label>
-        {%if sn.lokinet_last_reachable == 0 and sn.lokinet_last_unreachable == 0%}
-          Not yet tested
-        {%elif sn.lokinet_last_reachable >= sn.lokinet_last_unreachable%}
-          <span title="Last unreachable: {%if sn.lokinet_last_unreachable == 0%}Unknown{%else%}{{sn.lokinet_last_unreachable | from_timestamp | ago}} ago{%endif%}">
-            Reachable (as of {{sn.lokinet_last_reachable | from_timestamp | ago}} ago
-          </span>
-        {%else%}
-          <span title="Last reachable: {%if sn.lokinet_last_reachable == 0%}Unknown{%else%}{{sn.lokinet_last_reachable | from_timestamp | ago}} ago{%endif%}">
-          Not reachable (as of {{sn.lokinet_last_unreachable | from_timestamp | ago}} ago)
-          </span>
-        {%endif%}
-      </span>
+      {{reachable.display(sn)}}
+      {{reachable.display(sn, true)}}
     {%endif%}
 
     {%set pulse_voted = sn.pulse_participation | selectattr("voted") | list | length%}
@@ -188,7 +163,8 @@
     <p class="sn-awaiting">Awaiting registration.  This service node has <span class="oxen required">{{(sn.staking_requirement - sn.total_contributed) | oxen}}</span>
     remaining to be contributed.
     {%if sn.num_open_spots > 0%}
-      The minimum required stake contribution is <span class="oxen required">{{((sn.staking_requirement - sn.total_reserved) / sn.num_open_spots) | oxen}}</span>.
+      {%set total_staked = sn.total_reserved if 'total_reserved' in sn else sn.total_contributed%}
+      The minimum required stake contribution is <span class="oxen required">{{((sn.staking_requirement - total_staked) / sn.num_open_spots) | oxen}}</span>.
     {%endif%}
     </p>
   {%endif%}
@@ -224,7 +200,7 @@
                 ({{c.locked_contributions|length}} contributions)
               {%endif-%}
             </td>
-            <td>{{c.reserved | oxen}}</td>
+            <td>{{(c.reserved if 'reserved' in c else c.amount) | oxen}}</td>
           </tr>
         {%endfor%}
       </tbody>

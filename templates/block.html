@@ -50,7 +50,7 @@ Validator bits: {{"{:011b}".format(block.info.pulse.validator_bitset)}}"><label>
         {%endif%}
 
         {%set sum_burned = transactions | selectattr('extra.burn_amount') | sum(attribute='extra.burn_amount') %}
-        {%set sum_fees = transactions | selectattr('info.rct_signatures') | selectattr('info.rct_signatures.txnFee') | sum(attribute='info.rct_signatures.txnFee') - sum_burned%}
+        {%set sum_fees = transactions | selectattr('rct_signatures') | selectattr('rct_signatures.txnFee') | sum(attribute='rct_signatures.txnFee') - sum_burned%}
 
         <span title="{{(block_header.reward - sum_fees) | oxen(fixed=True)}} created in this block.{%if sum_fees > 0%}
 
@@ -91,9 +91,9 @@ Note that this value does not include earned transaction fees ({{sum_fees | oxen
         </tr>
         <tr>
             <td><a href="/tx/{{miner_tx.tx_hash}}">{{miner_tx.tx_hash}}</a></td>
-            <td>{{miner_tx.info.vout | sum(attribute='amount') | oxen}}</td>
+            <td>{{miner_tx.vout | sum(attribute='amount') | oxen}}</td>
             <td>{{miner_tx.size}}</td>
-            <td>{{miner_tx.info.version}}</td>
+            <td>{{miner_tx.version}}</td>
         </tr>
     </table>
     {%endif%}
@@ -122,7 +122,7 @@ Note that this value does not include earned transaction fees ({{sum_fees | oxen
                   <td><a href="/tx/{{tx.tx_hash}}">{{tx.tx_hash}}</a></td>
                   <td>{{fee.display(tx)}}</td>
                   <td></td>
-                  <td>{{tx.info.vin | length}}/{{tx.info.vout | length}}</td>
+                  <td>{{tx.vin | length}}/{{tx.vout | length}}</td>
                   <td>{{tx.size | si}}B</td>
                 </tr>
             {% endfor %}

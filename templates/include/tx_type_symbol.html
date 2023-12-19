@@ -1,6 +1,6 @@
 {%- macro display(tx, text=false) -%}
-    {% if tx.info.version >= 4 -%}
-        {% if tx.info.type == 1 and 'sn_state_change' in tx.extra -%}
+    {% if tx.version >= 4 -%}
+        {% if tx.type == 1 and 'sn_state_change' in tx.extra -%}
             {% if tx.extra.sn_state_change.type == 'decom' -%}
                 <span class="icon" title="Service Node decommission">👎{%if text%} decommission{%endif%}</span>
             {% elif tx.extra.sn_state_change.type == 'recom' -%}
@@ -12,9 +12,9 @@
             {% else -%}
                 <span class="icon" title="Unknown state change transaction">❓{%if text%} unknown state change{%endif%}</span><!-- Either a bug or a malformed transaction -->
             {% endif -%}
-        {% elif tx.info.type == 2 -%}
+        {% elif tx.type == 2 -%}
             <span class="icon" title="Service Node stake unlock — {{tx.extra.sn_pubkey}}">🔓{%if text%} unlock{%endif%}</span>
-        {% elif tx.info.type == 4 and 'ons' in tx.extra -%}
+        {% elif tx.type == 4 and 'ons' in tx.extra -%}
             {% if 'buy' in tx.extra.ons -%}
                 <span class="icon" title="Oxen Name Service Buying">🎫{%if text%} LNS purchase{%endif%}</span>
             {% elif 'update' in tx.extra.ons -%}

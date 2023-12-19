@@ -177,7 +177,7 @@
                   <td><a href="/tx/{{b.txs[0].tx_hash}}">{{b.txs[0].tx_hash}}</a></td>
                   <td>{{fee.display(b.txs[0])}}</td>
                   <td>{{b.coinbase_payouts | oxen(tag=False, fixed=True, decimals=2)}}</td>
-                  <td>0/{{b.txs[0].info.vout | length}}</td>
+                  <td>0/{{b.txs[0].vout | length}}</td>
                   <td>{{b.txs[0].size | si}}</td>
                 </tr>
               {% else %}
@@ -203,7 +203,7 @@
                   <td><a href="/tx/{{tx.tx_hash}}">{{tx.tx_hash}}</a></td>
                   <td>{{fee.display(tx)}}</td>
                   <td></td>
-                  <td>{{tx.info.vin | length}}/{{tx.info.vout | length}}</td>
+                  <td>{{tx.vin | length}}/{{tx.vout | length}}</td>
                   <td>{{tx.size | si}}</td>
                 </tr>
               {% endfor %}
