@@ -26,6 +26,7 @@ from Cryptodome.Hash import keccak
 import config
 import local_config
 from lmq import FutureJSON, omq_connection
+import geoip2.database
 
 # Make a dict of config.* to pass to templating
 conf = {x: getattr(config, x) for x in dir(config) if not x.startswith('__')}
@@ -46,7 +47,6 @@ class Hex64Converter(BaseConverter):
         self.regex = "[0-9a-fA-F]{64}"
 
 app.url_map.converters['hex64'] = Hex64Converter
-
 
 @app.template_filter('format_datetime')
 def format_datetime(value, format='long'):
@@ -186,10 +186,11 @@ def get_sns_future(omq, oxend):
                     'last_reward_transaction_index', 'active', 'funded', 'earned_downtime_blocks',
                     'service_node_version', 'contributors', 'total_contributed', 'total_reserved',
                     'staking_requirement', 'portions_for_operator', 'operator_address', 'pubkey_ed25519',
-                    'last_uptime_proof', 'state_height', 'swarm_id') } })
+                    'last_uptime_proof', 'state_height', 'swarm_id', 'public_ip') } })
 
 def get_sns(sns_future, info_future):
     info = info_future.get()
+    geoip = geoip2.database.Reader(config.geoip_dir + '/GeoLite2-City.mmdb')
     awaiting_sns, active_sns, inactive_sns = [], [], []
     sn_states = sns_future.get()
     sn_states = sn_states['service_node_states'] if 'service_node_states' in sn_states else []
@@ -197,6 +198,8 @@ def get_sns(sns_future, info_future):
         sn['contribution_open'] = sn['staking_requirement'] - sn['total_reserved']
         sn['contribution_required'] = sn['staking_requirement'] - sn['total_contributed']
         sn['num_contributions'] = sum(len(x['locked_contributions']) for x in sn['contributors'] if 'locked_contributions' in x)
+        sn['country'] = geoip.city(sn['public_ip']).country.names['en']
+        sn['iso_code'] = geoip.city(sn['public_ip']).country.iso_code
 
         if sn['active']:
             active_sns.append(sn)
@@ -571,6 +574,8 @@ def show_sn(pubkey, more_details=False):
     hfinfo = FutureJSON(omq, oxend, 'rpc.hard_fork_info', 10)
     sn = sn_req(omq, oxend, pubkey).get()
     quos = get_quorums_future(omq, oxend, info.get()['height'])
+    geoip_c = geoip2.database.Reader(config.geoip_dir + '/GeoLite2-City.mmdb')
+    geoip_a = geoip2.database.Reader(config.geoip_dir + '/GeoLite2-ASN.mmdb')
 
 
     if 'service_node_states' not in sn or not sn['service_node_states']:
@@ -589,6 +594,12 @@ def show_sn(pubkey, more_details=False):
     sn['num_reserved_spots'] = sum(x["amount"] < x["reserved"] for x in sn["contributors"])
     # Available open contribution spots:
     sn['num_open_spots'] = 0 if sn['total_reserved'] >= sn['staking_requirement'] else max(0, 4 - sn['num_contributions'] - sn['num_reserved_spots'])
+    sn['country'] = geoip_c.city(sn['public_ip']).country.names['en']
+    sn['iso_code'] = geoip_c.city(sn['public_ip']).country.iso_code
+    city = geoip_c.city(sn['public_ip']).city
+    if city.names:
+        sn['city'] = city.names['en']
+    sn['asn'] = geoip_a.asn(sn['public_ip']).autonomous_system_organization
 
     if more_details:
         formatter = HtmlFormatter(cssclass="syntax-highlight", style="paraiso-dark")

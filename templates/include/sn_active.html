@@ -8,6 +8,7 @@
             <td title="Can also be the height of the last activation, IP penalty, or recommission">Last Reward Height</td>
             <td>Last Uptime Proof</td>
             <td>Expiry Date UTC (Estimated)</td>
+            <td>Country</td>
         </tr>
     </thead>
 
@@ -28,6 +29,7 @@
                         Staking Infinitely
                     {%endif%}
                 </td>
+                <td style="text-align:left;"><img style="width:15px;height:10px;" src="/flags/{{sn.iso_code}}.png"> {{sn.country}}</td>
             </tr>
         {%endfor%}
     </tbody>
